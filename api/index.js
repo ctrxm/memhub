@@ -3,7 +3,7 @@
 let app;
 
 try {
-  const appModule = require("../artifacts/api-server/dist/app.cjs");
+  const appModule = require("./app.cjs");
   app = appModule.default || appModule;
 } catch (err) {
   console.error("[vercel] Failed to load app bundle:", err.message);

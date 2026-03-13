@@ -1,18 +1,11 @@
 {
   "version": 2,
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/db build && pnpm --filter @workspace/api-zod build && pnpm --filter @workspace/api-server build && pnpm --filter @workspace/memehub build",
+  "buildCommand": "pnpm --filter @workspace/db build && pnpm --filter @workspace/api-zod build && pnpm --filter @workspace/api-server build && pnpm --filter @workspace/memehub build && cp artifacts/api-server/dist/app.cjs api/app.cjs && cp -r artifacts/memehub/dist/* public/",
   "outputDirectory": "public",
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30,
-      "includeFiles": "artifacts/**/dist/**"
-    }
-  },
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.js"
-    }
+    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
