@@ -43,7 +43,7 @@ async function getUserProfile(targetUser: any, currentUserId?: number) {
 // GET /users/:username
 router.get("/:username", optionalAuth, async (req, res) => {
   try {
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.username, req.params.username));
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.username, req.params.username as string));
     if (!user) {
       res.status(404).json({ error: "Not Found", message: "User not found" });
       return;
@@ -60,7 +60,7 @@ router.get("/:username", optionalAuth, async (req, res) => {
 // GET /users/:username/posts
 router.get("/:username/posts", optionalAuth, async (req, res) => {
   try {
-    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, req.params.username));
+    const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, req.params.username as string));
     if (!user) {
       res.status(404).json({ error: "Not Found" });
       return;
@@ -113,7 +113,7 @@ router.get("/:username/posts", optionalAuth, async (req, res) => {
 router.post("/:username/follow", authenticate, async (req, res) => {
   try {
     const currentUser = (req as any).user;
-    const [targetUser] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, req.params.username));
+    const [targetUser] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, req.params.username as string));
     
     if (!targetUser) {
       res.status(404).json({ error: "Not Found" });

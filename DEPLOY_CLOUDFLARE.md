@@ -40,7 +40,7 @@ npm install -g vercel
 - Pada bagian **"Configure Project"**:
   - **Framework Preset**: Other
   - **Root Directory**: `.` *(biarkan di root monorepo)*
-  - **Build Command**: *(kosongkan / leave empty)*
+  - **Build Command**: `pnpm --filter @workspace/db build && pnpm --filter @workspace/api-server build`
   - **Output Directory**: *(kosongkan / leave empty)*
   - **Install Command**: `pnpm install --frozen-lockfile`
 

@@ -26,7 +26,7 @@ function formatComment(comment: any, author: any, userVote: string | null, repli
 // GET /posts/:id/comments
 router.get("/:id/comments", optionalAuth, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id as string);
     const userId = (req as any).user?.id;
     const page = Math.max(1, parseInt((req.query.page as string) || "1"));
     const limit = 20;
@@ -93,7 +93,7 @@ router.get("/:id/comments", optionalAuth, async (req, res) => {
 // POST /posts/:id/comments
 router.post("/:id/comments", authenticate, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id as string);
     const user = (req as any).user;
     const { content, parentId } = req.body;
 
@@ -140,7 +140,7 @@ router.post("/:id/comments", authenticate, async (req, res) => {
 // POST /comments/:id/vote
 router.post("/:id/vote", authenticate, async (req, res) => {
   try {
-    const commentId = parseInt(req.params.id);
+    const commentId = parseInt(req.params.id as string);
     const user = (req as any).user;
     const { direction } = req.body;
 
@@ -195,7 +195,7 @@ router.post("/:id/vote", authenticate, async (req, res) => {
 // DELETE /comments/:id
 router.delete("/:id", authenticate, async (req, res) => {
   try {
-    const commentId = parseInt(req.params.id);
+    const commentId = parseInt(req.params.id as string);
     const user = (req as any).user;
 
     const [comment] = await db.select().from(commentsTable).where(eq(commentsTable.id, commentId));

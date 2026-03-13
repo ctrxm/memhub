@@ -225,7 +225,7 @@ router.post("/", authenticate, async (req, res) => {
 // GET /posts/:id
 router.get("/:id", optionalAuth, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id as string);
     const userId = (req as any).user?.id;
 
     const [post] = await db.select().from(postsTable).where(eq(postsTable.id, postId));
@@ -248,7 +248,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
 // DELETE /posts/:id
 router.delete("/:id", authenticate, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id as string);
     const user = (req as any).user;
 
     const [post] = await db.select().from(postsTable).where(eq(postsTable.id, postId));
@@ -273,7 +273,7 @@ router.delete("/:id", authenticate, async (req, res) => {
 // POST /posts/:id/vote
 router.post("/:id/vote", authenticate, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id as string);
     const user = (req as any).user;
     const { direction } = req.body;
 
@@ -339,7 +339,7 @@ router.post("/:id/vote", authenticate, async (req, res) => {
 // POST /posts/:id/report
 router.post("/:id/report", authenticate, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id as string);
     const user = (req as any).user;
     const { reason = "spam" } = req.body;
 
@@ -362,7 +362,7 @@ router.post("/:id/report", authenticate, async (req, res) => {
 // POST /posts/:id/save
 router.post("/:id/save", authenticate, async (req, res) => {
   try {
-    const postId = parseInt(req.params.id);
+    const postId = parseInt(req.params.id as string);
     const user = (req as any).user;
 
     const [existing] = await db.select().from(savedPostsTable)

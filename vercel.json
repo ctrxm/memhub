@@ -1,7 +1,7 @@
 {
   "version": 2,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/api-server build",
+  "buildCommand": "pnpm --filter @workspace/db build && pnpm --filter @workspace/api-server build",
   "functions": {
     "artifacts/api-server/api/index.js": {
       "memory": 1024,
