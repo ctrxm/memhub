@@ -8,6 +8,7 @@ import { formatTimeAgo, cn, formatNumber } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { OvrHubLogoIcon } from "@/components/ui/OvrHubLogo";
 
 export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: boolean }) {
   const { isAuthenticated, user } = useAuth();
@@ -150,6 +151,15 @@ export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: bo
             {post.title}
           </h2>
         </ContentWrapper>
+        {post.community && (
+          <div className="mt-1.5">
+            <Link href={`/c/${post.community.slug}`}>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary/80 hover:text-primary transition-colors bg-primary/10 hover:bg-primary/15 px-2 py-0.5 rounded-full cursor-pointer">
+                {post.community.icon} {post.community.name}
+              </span>
+            </Link>
+          </div>
+        )}
         {post.tags?.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
             {post.tags.map(tag => (
@@ -163,7 +173,12 @@ export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: bo
 
       {/* Media */}
       <ContentWrapper {...(contentProps as any)} className={cn("block relative bg-black/20 group", !isDetail && "cursor-pointer")}>
-        <div className={cn("relative w-full flex justify-center items-center overflow-hidden", !isImageLoaded && "min-h-[300px] animate-pulse bg-muted")}>
+        <div className={cn("relative w-full flex justify-center items-center overflow-hidden", !isImageLoaded && "min-h-[300px] bg-muted")}>
+          {!isImageLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 animate-pulse">
+              <OvrHubLogoIcon size={48} className="opacity-20" />
+            </div>
+          )}
           <img
             src={post.type === "gif" && post.gifUrl ? post.gifUrl : post.imageUrl}
             alt={post.title}

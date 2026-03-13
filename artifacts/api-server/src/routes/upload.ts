@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
   fileFilter: (_req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4"];
     if (allowed.includes(file.mimetype)) {
@@ -38,7 +38,17 @@ const upload = multer({
 });
 
 // POST /upload/image — upload to HuggingFace Datasets
-router.post("/image", authenticate, upload.single("file"), async (req, res) => {
+router.post("/image", authenticate, (req, res, next) => {
+  upload.single("file")(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "File too large", message: "Maximum file size is 3 MB." });
+      }
+      return res.status(400).json({ error: "Upload error", message: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: "Bad Request", message: "No file uploaded" });

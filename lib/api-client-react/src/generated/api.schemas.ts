@@ -104,6 +104,13 @@ export interface PostAuthor {
   avatar?: string | null;
 }
 
+export interface PostCommunity {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -120,6 +127,7 @@ export interface Post {
   isSaved: boolean;
   tags: Tag[];
   author: PostAuthor;
+  community?: PostCommunity | null;
   createdAt: string;
 }
 
@@ -229,6 +237,7 @@ export interface CreatePostRequest {
   imageUrl: string;
   type: CreatePostRequestType;
   tagIds?: string[];
+  communityId?: string | null;
 }
 
 export interface UpdateProfileRequest {

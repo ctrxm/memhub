@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { db, postsTable, usersTable, votesTable, savedPostsTable, postTagsTable, tagsTable, followsTable } from "@workspace/db";
+import { db, postsTable, usersTable, votesTable, savedPostsTable, postTagsTable, tagsTable, followsTable, communitiesTable } from "@workspace/db";
 import { eq, and, desc, asc, sql, ilike, or, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../lib/auth.js";
 import { getUserBadges } from "./badges.js";
 
 const router = Router();
 
-function formatPost(post: any, author: any, tags: any[], userVote: string | null, isSaved: boolean) {
+function formatPost(post: any, author: any, tags: any[], userVote: string | null, isSaved: boolean, community?: any) {
   return {
     id: String(post.id),
     title: post.title,
@@ -34,6 +34,12 @@ function formatPost(post: any, author: any, tags: any[], userVote: string | null
       avatar: author.avatar || null,
       badges: author.badges || [],
     },
+    community: community ? {
+      id: String(community.id),
+      name: community.name,
+      slug: community.slug,
+      icon: community.icon,
+    } : null,
     createdAt: post.createdAt,
   };
 }
@@ -80,12 +86,21 @@ async function getPostsWithDetails(posts: any[], userId?: number) {
     saved.forEach(s => savedSet.add(s.postId));
   }
 
+  // Batch-fetch communities for posts that belong to one
+  const communityIds = [...new Set(posts.map(p => p.communityId).filter(Boolean))];
+  const communityMap = new Map<number, any>();
+  if (communityIds.length) {
+    const communities = await db.select().from(communitiesTable).where(inArray(communitiesTable.id, communityIds));
+    communities.forEach(c => communityMap.set(c.id, c));
+  }
+
   return posts.map(post => formatPost(
     post,
     authorMap.get(post.authorId),
     tagsMap.get(post.id) || [],
     voteMap.get(post.id) || null,
-    savedSet.has(post.id)
+    savedSet.has(post.id),
+    post.communityId ? communityMap.get(post.communityId) : null,
   ));
 }
 
@@ -196,12 +211,14 @@ router.get("/", optionalAuth, async (req, res) => {
 router.post("/", authenticate, async (req, res) => {
   try {
     const user = (req as any).user;
-    const { title, imageUrl, type = "image", tagIds = [] } = req.body;
+    const { title, imageUrl, type = "image", tagIds = [], communityId } = req.body;
 
     if (!title || !imageUrl) {
       res.status(400).json({ error: "Bad Request", message: "Title and imageUrl required" });
       return;
     }
+
+    const communityIdNum = communityId ? parseInt(communityId) : null;
 
     const [post] = await db.insert(postsTable).values({
       title,
@@ -209,7 +226,15 @@ router.post("/", authenticate, async (req, res) => {
       type,
       authorId: user.id,
       status: "approved",
+      communityId: communityIdNum || null,
     }).returning();
+
+    // Increment community postsCount
+    if (communityIdNum) {
+      await db.update(communitiesTable)
+        .set({ postsCount: sql`${communitiesTable.postsCount} + 1` })
+        .where(eq(communitiesTable.id, communityIdNum));
+    }
 
     if (tagIds.length) {
       const tagIdNums = tagIds.map((id: string) => parseInt(id)).filter((id: number) => !isNaN(id));
