@@ -20,7 +20,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: user, isLoading, error, refetch } = useGetMe({
     query: {
       enabled: !!token,
-      retry: false,
+      retry: 2,
+      retryDelay: 1000,
     }
   });
 
@@ -34,10 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token, refetch]);
 
-  // Handle auth errors (e.g., expired token)
+  // Only clear token on 401 (invalid/expired token), not on server errors
   useEffect(() => {
     if (error && token) {
-      setToken(null);
+      const status = (error as any)?.status ?? (error as any)?.response?.status;
+      if (status === 401) {
+        setToken(null);
+      }
     }
   }, [error, token]);
 
