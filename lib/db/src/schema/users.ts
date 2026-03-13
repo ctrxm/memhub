@@ -29,3 +29,24 @@ export const followsTable = pgTable("follows", {
   followingId: integer("following_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const badgesTable = pgTable("badges", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon").notNull().default("⭐"),
+  color: text("color").notNull().default("#FF6600"),
+  bgColor: text("bg_color").notNull().default("#1a1a1a"),
+  isVerified: boolean("is_verified").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const userBadgesTable = pgTable("user_badges", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  badgeId: integer("badge_id").notNull().references(() => badgesTable.id, { onDelete: "cascade" }),
+  awardedAt: timestamp("awarded_at").notNull().defaultNow(),
+});
+
+export type Badge = typeof badgesTable.$inferSelect;
+export type UserBadge = typeof userBadgesTable.$inferSelect;

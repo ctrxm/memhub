@@ -8,7 +8,7 @@ if (!connectionString) {
 }
 
 export default defineConfig({
-  schema: path.join(__dirname, "./src/schema/index.ts"),
+  schema: path.join(__dirname, "./dist/schema/index.js"),
   dialect: "postgresql",
   dbCredentials: {
     url: connectionString,

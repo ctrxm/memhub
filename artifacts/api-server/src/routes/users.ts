@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, usersTable, followsTable, postsTable, savedPostsTable } from "@workspace/db";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../lib/auth.js";
+import { getUserBadges } from "./badges.js";
 
 const router = Router();
 
@@ -23,6 +24,8 @@ async function getUserProfile(targetUser: any, currentUserId?: number) {
     isFollowing = !!followRow;
   }
 
+  const badges = await getUserBadges(targetUser.id);
+
   return {
     id: String(targetUser.id),
     username: targetUser.username,
@@ -36,6 +39,7 @@ async function getUserProfile(targetUser: any, currentUserId?: number) {
     postsCount: Number(postsResult?.count || 0),
     totalPoints: targetUser.totalPoints,
     isFollowing,
+    badges,
     createdAt: targetUser.createdAt,
   };
 }

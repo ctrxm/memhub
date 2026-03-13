@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Post, useVotePost, useSavePost } from "@workspace/api-client-react";
 import { Avatar, Badge, Button } from "@/components/ui/shared";
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, Bookmark, MoreHorizontal, Trash2, Flag, Copy } from "lucide-react";
+import { UserBadges } from "@/components/ui/UserBadge";
 import { formatTimeAgo, cn, formatNumber } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -104,9 +105,12 @@ export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: bo
             <Avatar src={post.author.avatar} fallback={post.author.username} className="cursor-pointer hover:ring-2 hover:ring-primary transition-all" />
           </Link>
           <div>
-            <Link href={`/u/${post.author.username}`} className="font-bold text-foreground hover:underline">
-              {post.author.username}
-            </Link>
+            <span className="flex items-center gap-1.5">
+              <Link href={`/u/${post.author.username}`} className="font-bold text-foreground hover:underline">
+                {post.author.username}
+              </Link>
+              <UserBadges badges={(post.author as any).badges} size="sm" max={3} />
+            </span>
             <p className="text-xs text-muted-foreground flex items-center gap-2">
               {formatTimeAgo(post.createdAt)}
               {post.type === "gif" && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">GIF</Badge>}

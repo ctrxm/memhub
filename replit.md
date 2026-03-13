@@ -1,8 +1,8 @@
-# MemeHub - 9GAG Clone
+# OVRHUB - Meme Community Platform
 
 ## Overview
 
-MemeHub adalah platform berbagi meme mirip 9GAG dengan fitur lengkap, dibangun dengan React + Vite (frontend) dan Express (backend API).
+OVRHUB (rebranded from MemeHub) adalah platform berbagi meme mirip 9GAG dengan fitur lengkap, dibangun dengan React + Vite (frontend) dan Express (backend API).
 
 ## Stack
 
@@ -24,7 +24,8 @@ MemeHub adalah platform berbagi meme mirip 9GAG dengan fitur lengkap, dibangun d
 - **Feed**: Hot/Trending/Fresh/Top tabs dengan infinite scroll
 - **Posts**: Upload meme (image/gif), vote, save, share
 - **Comments**: Threaded comments dengan vote
-- **User Profiles**: Avatar, bio, stats, follow/unfollow
+- **User Profiles**: Redesigned with animated banner, gradient header, badge showcase, tabbed posts/saved
+- **Badges**: Full badge system — create/delete badges, award/revoke to users, display on profile and post cards
 - **Notifications**: Upvotes, comments, follows, replies
 - **Tags**: Kategori meme yang bisa difilter
 - **Search**: Cari post berdasarkan judul

@@ -8,6 +8,7 @@ import tagsRouter from "./tags.js";
 import notificationsRouter from "./notifications.js";
 import uploadRouter from "./upload.js";
 import adminRouter from "./admin.js";
+import badgesRouter from "./badges.js";
 import { db, postsTable } from "@workspace/db";
 import { ilike, eq, and, sql } from "drizzle-orm";
 import { optionalAuth } from "../lib/auth.js";
@@ -35,6 +36,7 @@ router.use("/tags", tagsRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/upload", uploadRouter);
 router.use("/admin", adminRouter);
+router.use("/badges", badgesRouter);
 
 // Search route
 router.get("/search", optionalAuth, async (req, res) => {

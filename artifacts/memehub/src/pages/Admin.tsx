@@ -4,14 +4,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useGetAdminStats, useGetAdminPosts, useUpdatePostStatus, useGetAdminSettings, useUpdateAdminSettings } from "@workspace/api-client-react";
 import { Button, Input, Badge, Textarea } from "@/components/ui/shared";
-import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X } from "lucide-react";
+import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
+import { UserBadge } from "@/components/ui/UserBadge";
 
 export default function Admin() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<'dashboard'|'posts'|'users'|'settings'>('dashboard');
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "badges" | "settings">("dashboard");
 
   if (user?.role !== 'admin') {
     return (
@@ -33,18 +34,20 @@ export default function Admin() {
         {/* Admin Sidebar */}
         <div className="w-full md:w-64 shrink-0 space-y-2">
           <h2 className="font-display text-2xl font-bold mb-6 px-4">Admin Panel</h2>
-          <AdminTab active={tab === 'dashboard'} icon={<Activity />} label="Dashboard" onClick={() => setTab('dashboard')} />
-          <AdminTab active={tab === 'posts'} icon={<ImageIcon />} label="Pending Posts" onClick={() => setTab('posts')} />
-          <AdminTab active={tab === 'users'} icon={<Users />} label="Users" onClick={() => setTab('users')} />
-          <AdminTab active={tab === 'settings'} icon={<Settings />} label="Site Settings" onClick={() => setTab('settings')} />
+          <AdminTab active={tab === "dashboard"} icon={<Activity />} label="Dashboard" onClick={() => setTab("dashboard")} />
+          <AdminTab active={tab === "posts"} icon={<ImageIcon />} label="Pending Posts" onClick={() => setTab("posts")} />
+          <AdminTab active={tab === "users"} icon={<Users />} label="Users" onClick={() => setTab("users")} />
+          <AdminTab active={tab === "badges"} icon={<Award />} label="Badges" onClick={() => setTab("badges")} />
+          <AdminTab active={tab === "settings"} icon={<Settings />} label="Site Settings" onClick={() => setTab("settings")} />
         </div>
 
         {/* Content Area */}
         <div className="flex-1 bg-card border border-border/50 rounded-2xl p-6 shadow-sm min-h-[600px]">
-          {tab === 'dashboard' && <AdminDashboard />}
-          {tab === 'posts' && <AdminPosts />}
-          {tab === 'users' && <AdminUsers />}
-          {tab === 'settings' && <AdminSettings />}
+          {tab === "dashboard" && <AdminDashboard />}
+          {tab === "posts" && <AdminPosts />}
+          {tab === "users" && <AdminUsers />}
+          {tab === "badges" && <AdminBadges />}
+          {tab === "settings" && <AdminSettings />}
         </div>
       </div>
     </Layout>
@@ -194,6 +197,184 @@ function AdminUsers() {
             </div>
           ))}
           {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No users found.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminBadges() {
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const { toast } = useToast();
+  const [badges, setBadges] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [awardMode, setAwardMode] = useState<string | null>(null);
+  const [awardSearch, setAwardSearch] = useState("");
+  const [form, setForm] = useState({ name: "", description: "", icon: "⭐", color: "#f59e0b", bgColor: "#fef3c7", isVerified: false });
+
+  const token = localStorage.getItem("ovrhub_token") || localStorage.getItem("memehub_token");
+  const authHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+
+  const loadBadges = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/badges`, { headers: authHeaders });
+      const data = await res.json();
+      setBadges(data.badges || []);
+    } catch { }
+    setLoading(false);
+  };
+
+  const loadUsers = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/admin/users`, { headers: authHeaders });
+      const data = await res.json();
+      setUsers(data.users || []);
+    } catch { }
+  };
+
+  useEffect(() => { loadBadges(); loadUsers(); }, []);
+
+  const createBadge = async () => {
+    if (!form.name.trim()) return;
+    try {
+      const res = await fetch(`${BASE}/api/badges`, { method: "POST", headers: authHeaders, body: JSON.stringify(form) });
+      if (res.ok) {
+        toast({ title: "Badge created!" });
+        setCreating(false);
+        setForm({ name: "", description: "", icon: "⭐", color: "#f59e0b", bgColor: "#fef3c7", isVerified: false });
+        loadBadges();
+      } else toast({ title: "Error creating badge", variant: "destructive" });
+    } catch { toast({ title: "Error", variant: "destructive" }); }
+  };
+
+  const deleteBadge = async (id: string) => {
+    if (!confirm("Delete this badge? It will be removed from all users.")) return;
+    try {
+      const res = await fetch(`${BASE}/api/badges/${id}`, { method: "DELETE", headers: authHeaders });
+      if (res.ok) { toast({ title: "Badge deleted" }); loadBadges(); }
+    } catch { }
+  };
+
+  const awardBadge = async (badgeId: string, username: string) => {
+    try {
+      const res = await fetch(`${BASE}/api/badges/${badgeId}/award`, {
+        method: "POST", headers: authHeaders, body: JSON.stringify({ username })
+      });
+      if (res.ok) { toast({ title: `Badge awarded to ${username}!` }); setAwardMode(null); setAwardSearch(""); }
+      else { const d = await res.json(); toast({ title: d.error || "Error", variant: "destructive" }); }
+    } catch { toast({ title: "Error", variant: "destructive" }); }
+  };
+
+  const filteredUsers = users.filter(u => u.username?.toLowerCase().includes(awardSearch.toLowerCase()));
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold">Badge Management</h3>
+        <Button onClick={() => setCreating(v => !v)} className="rounded-full gap-2">
+          <Plus className="w-4 h-4" /> {creating ? "Cancel" : "Create Badge"}
+        </Button>
+      </div>
+
+      {/* Create form */}
+      {creating && (
+        <div className="bg-background border border-border/50 rounded-xl p-5 mb-6 space-y-4">
+          <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">New Badge</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold mb-1 block">Name *</label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Verified Creator" />
+            </div>
+            <div>
+              <label className="text-xs font-bold mb-1 block">Icon (emoji or text)</label>
+              <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="⭐ / 🔥 / VIP" />
+            </div>
+            <div>
+              <label className="text-xs font-bold mb-1 block">Description</label>
+              <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Short description" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-bold mb-1 block">Text Color</label>
+                <input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-full h-9 rounded-lg border border-border cursor-pointer" />
+              </div>
+              <div>
+                <label className="text-xs font-bold mb-1 block">BG Color</label>
+                <input type="color" value={form.bgColor} onChange={e => setForm(f => ({ ...f, bgColor: e.target.value }))} className="w-full h-9 rounded-lg border border-border cursor-pointer" />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <input type="checkbox" id="verified-chk" checked={form.isVerified} onChange={e => setForm(f => ({ ...f, isVerified: e.target.checked }))} className="w-4 h-4 accent-primary" />
+            <label htmlFor="verified-chk" className="text-sm font-medium">Verified badge (shows checkmark icon)</label>
+          </div>
+          {/* Preview */}
+          <div className="flex items-center gap-2 p-3 bg-secondary/30 rounded-lg">
+            <span className="text-xs font-bold text-muted-foreground">Preview:</span>
+            <UserBadge badge={{ id: "preview", ...form, isVerified: form.isVerified } as any} size="md" showTooltip={false} />
+            <span className="text-sm font-bold" style={{ color: form.color }}>{form.name || "Badge Name"}</span>
+          </div>
+          <Button onClick={createBadge} className="w-full">Create Badge</Button>
+        </div>
+      )}
+
+      {/* Award modal overlay */}
+      {awardMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setAwardMode(null)}>
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h4 className="font-bold text-lg mb-4">Award Badge to User</h4>
+            <Input value={awardSearch} onChange={e => setAwardSearch(e.target.value)} placeholder="Search username..." className="mb-3" autoFocus />
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {filteredUsers.slice(0, 20).map(u => (
+                <button key={u.id} onClick={() => awardBadge(awardMode, u.username)}
+                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-secondary transition-colors text-left">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                    {u.username?.[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">{u.username}</p>
+                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                  </div>
+                </button>
+              ))}
+              {filteredUsers.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No users found</p>}
+            </div>
+            <Button variant="outline" className="w-full mt-4" onClick={() => setAwardMode(null)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Badges list */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-secondary animate-pulse" />)}
+        </div>
+      ) : badges.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Award className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="font-bold">No badges yet</p>
+          <p className="text-sm mt-1">Create your first badge above.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {badges.map(badge => (
+            <div key={badge.id} className="flex items-center gap-3 p-4 bg-background border border-border/50 rounded-xl">
+              <UserBadge badge={badge} size="md" showTooltip={false} />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm" style={{ color: badge.color }}>{badge.name}</p>
+                {badge.description && <p className="text-xs text-muted-foreground truncate">{badge.description}</p>}
+              </div>
+              {badge.isVerified && <Badge variant="secondary" className="text-xs">Verified</Badge>}
+              <Button size="sm" variant="outline" className="text-xs gap-1 shrink-0" onClick={() => setAwardMode(badge.id)}>
+                <UserCheck className="w-3.5 h-3.5" /> Award
+              </Button>
+              <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 shrink-0" onClick={() => deleteBadge(badge.id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
         </div>
       )}
     </div>
