@@ -5,4 +5,4 @@ generated = []
 id = "Qfrox0K8AF_KSlXqh1KeA"
 uri = "file://DEPLOY_CLOUDFLARE.md"
 type = "text"
-title = "Panduan Deploy ke Cloudflare Pages"
+title = "Panduan Deploy — Cloudflare Pages + Vercel Backend"

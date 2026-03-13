@@ -5,8 +5,12 @@ import router from "./routes/index.js";
 
 const app: Express = express();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  : true;
+
 app.use(cors({
-  origin: true,
+  origin: allowedOrigins,
   credentials: true,
 }));
 app.use(express.json({ limit: "50mb" }));

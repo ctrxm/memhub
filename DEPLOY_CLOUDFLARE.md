@@ -1,6 +1,6 @@
-# Deploy MemeHub ke Cloudflare Pages
+# Deploy MemeHub — Cloudflare Pages + Vercel (Backend)
 
-Panduan ini menjelaskan cara men-deploy **frontend MemeHub** ke Cloudflare Pages dan **backend API** ke layanan seperti Railway, Render, atau Fly.io.
+Panduan lengkap men-deploy **frontend** ke Cloudflare Pages dan **backend API** ke Vercel (atau Railway/Render sebagai alternatif).
 
 ---
 
@@ -8,240 +8,213 @@ Panduan ini menjelaskan cara men-deploy **frontend MemeHub** ke Cloudflare Pages
 
 ```
 ┌─────────────────────────────┐     ┌──────────────────────────────┐
-│   Cloudflare Pages (Free)   │────▶│  Backend API (Railway/Render)│
-│   artifacts/memehub         │     │  artifacts/api-server        │
-│   React + Vite SPA          │     │  Express + TypeScript        │
-└─────────────────────────────┘     └──────────────────┬───────────┘
-                                                        │
-                                          ┌─────────────▼────────────┐
-                                          │   Supabase PostgreSQL    │
-                                          │   (Database)             │
-                                          └──────────────────────────┘
+│   Cloudflare Pages (Free)   │────▶│   Vercel Serverless (Free)   │
+│   artifacts/memehub         │     │   artifacts/api-server        │
+│   React + Vite SPA          │     │   Express + TypeScript        │
+└─────────────────────────────┘     └──────────────┬───────────────┘
+                                                    │
+                                      ┌─────────────▼────────────┐
+                                      │   Supabase PostgreSQL    │
+                                      │   aws-1-ap-southeast-1   │
+                                      └──────────────────────────┘
 ```
 
 ---
 
-## Bagian 1: Deploy Backend API
+## Bagian 1: Deploy Backend ke Vercel ⭐ (Recommended)
 
-### Opsi A — Railway (Recommended, Free Tier Available)
+File `vercel.json` sudah dibuat di root project. Ikuti langkah berikut:
 
-1. **Buat akun** di [railway.app](https://railway.app)
+### Langkah-langkah
 
-2. **Buat project baru** → "Deploy from GitHub repo"
+**1. Buat akun Vercel** di [vercel.com](https://vercel.com) (login via GitHub)
 
-3. **Pilih root directory**: `artifacts/api-server`
-
-4. **Set environment variables** di Railway dashboard:
-
-   | Key | Value |
-   |-----|-------|
-   | `DATABASE_URL` | `postgresql://postgres.mzrwchhkxxzkjinrnosw:HendraWahyu@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres` |
-   | `SESSION_SECRET` | `generate-random-string-min-32-chars` |
-   | `HUGGINGFACE_TOKEN` | `hf_your_token_here` |
-   | `HUGGINGFACE_REPO` | `kalcer/kalcer` |
-   | `NODE_ENV` | `production` |
-   | `PORT` | `8080` |
-   | `ALLOWED_ORIGINS` | `https://memehub.pages.dev` *(ganti dengan domain CF Pages kamu)* |
-
-5. **Build command**: `pnpm --filter @workspace/api-server build`
-
-6. **Start command**: `pnpm --filter @workspace/api-server start`
-
-7. **Catat URL** yang diberikan Railway (misal: `https://memehub-api.up.railway.app`)
-
----
-
-### Opsi B — Render (Free Tier Available)
-
-1. Buat akun di [render.com](https://render.com)
-2. **New → Web Service** → connect repo
-3. **Root Directory**: `artifacts/api-server`
-4. **Build Command**: `npm install && npm run build`
-5. **Start Command**: `node dist/index.js`
-6. Isi environment variables sama seperti di atas
-
----
-
-### Opsi C — Fly.io
-
+**2. Install Vercel CLI** (opsional, bisa juga via dashboard):
 ```bash
-# Install flyctl
-curl -L https://fly.io/install.sh | sh
-
-# Login
-flyctl auth login
-
-# Deploy dari direktori api-server
-cd artifacts/api-server
-flyctl launch
-flyctl secrets set DATABASE_URL="postgresql://..."
-flyctl secrets set SESSION_SECRET="..."
-flyctl deploy
+npm install -g vercel
 ```
+
+**3. Deploy via Vercel Dashboard:**
+- Buka [vercel.com/new](https://vercel.com/new)
+- Klik **"Import Git Repository"** → pilih repo MemeHub
+- Pada bagian **"Configure Project"**:
+  - **Framework Preset**: Other
+  - **Root Directory**: `.` *(biarkan di root monorepo)*
+  - **Build Command**: *(kosongkan / leave empty)*
+  - **Output Directory**: *(kosongkan / leave empty)*
+  - **Install Command**: `pnpm install --frozen-lockfile`
+
+**4. Set Environment Variables** di Vercel dashboard → Settings → Environment Variables:
+
+| Key | Value | Environment |
+|-----|-------|-------------|
+| `DATABASE_URL` | `postgresql://postgres.mzrwchhkxxzkjinrnosw:HendraWahyu@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres` | Production, Preview |
+| `SESSION_SECRET` | *(random string 32+ karakter)* | Production, Preview |
+| `HUGGINGFACE_TOKEN` | `hf_xxxx` | Production, Preview |
+| `HUGGINGFACE_REPO` | `kalcer/kalcer` | Production, Preview |
+| `NODE_ENV` | `production` | Production |
+| `ALLOWED_ORIGINS` | `https://memehub.pages.dev` *(ganti dengan domain CF Pages kamu)* | Production |
+
+**5. Klik "Deploy"** — Vercel akan otomatis detect `vercel.json` dan deploy.
+
+**6. Catat URL backend** yang diberikan, misal:
+```
+https://memehub-backend.vercel.app
+```
+
+### Deploy via CLI
+```bash
+# Di root project
+vercel
+
+# Set secrets
+vercel env add DATABASE_URL
+vercel env add SESSION_SECRET
+vercel env add HUGGINGFACE_TOKEN
+
+# Deploy ke production
+vercel --prod
+```
+
+### Catatan Penting Vercel
+
+> **File Upload:** Vercel free tier memiliki batas ukuran request body **4.5 MB**. Untuk gambar besar, upgrade ke Pro (batas 100 MB) atau gunakan Railway/Render.
+
+> **Cold Start:** Serverless functions memiliki cold start ~1-2 detik pada request pertama setelah idle.
+
+> **Timeout:** Free tier timeout 10 detik, Pro tier 60 detik. Jika upload ke HuggingFace lambat, pertimbangkan Railway.
 
 ---
 
-## Bagian 2: Konfigurasi Frontend untuk Production
+## Bagian 2: Alternatif Backend — Railway
 
-Edit file `artifacts/memehub/vite.config.ts`, tambahkan variable API URL production:
+Cocok jika sering upload file besar atau butuh uptime tanpa cold start.
+
+**1. Buka** [railway.app](https://railway.app) → New Project → Deploy from GitHub
+
+**2. Settings:**
+- **Root Directory**: `artifacts/api-server`
+- **Build Command**: `pnpm install && pnpm build`
+- **Start Command**: `node dist/index.cjs`
+
+**3. Environment Variables** (sama seperti di atas)
+
+**4. Catat domain** Railway: `https://memehub-api.up.railway.app`
+
+---
+
+## Bagian 3: Deploy Frontend ke Cloudflare Pages
+
+**1. Buka** [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create application** → **Pages**
+
+**2. Connect to Git** → pilih repo MemeHub
+
+**3. Konfigurasi Build:**
+
+| Setting | Value |
+|---------|-------|
+| **Framework preset** | `Vite` |
+| **Root directory** | `artifacts/memehub` |
+| **Build command** | `cd ../.. && pnpm install && pnpm --filter @workspace/memehub build` |
+| **Build output directory** | `dist` |
+| **Node.js version** | `20` |
+
+**4. Environment Variables:**
+
+| Key | Value |
+|-----|-------|
+| `VITE_API_URL` | `https://memehub-backend.vercel.app` *(URL backend Vercel kamu)* |
+| `NODE_VERSION` | `20` |
+
+**5. Klik "Save and Deploy"**
+
+URL frontend akan seperti: `https://memehub.pages.dev`
+
+---
+
+## Bagian 4: Konfigurasi VITE_API_URL di Frontend
+
+Setelah deploy backend ke Vercel, update `vite.config.ts` dan fetch agar support API URL eksternal.
+
+Edit `artifacts/memehub/src/lib/fetch-override.ts`, tambahkan di bagian atas:
 
 ```ts
-// artifacts/memehub/vite.config.ts
-export default defineConfig({
-  // ...existing config...
-  define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify(
-      process.env.VITE_API_URL || ''
-    ),
-  },
-});
+// Gunakan VITE_API_URL jika di-set (production), atau BASE_URL (development)
+const EXTERNAL_API = import.meta.env.VITE_API_URL || "";
 ```
 
-Edit `artifacts/memehub/src/lib/fetch-override.ts`, tambahkan support untuk `VITE_API_URL`:
+Kemudian, setiap fetch ke `/api/` akan diarahkan ke URL Vercel backend.
 
-```ts
-// Jika VITE_API_URL di-set, gunakan untuk semua API calls
-const API_BASE = import.meta.env.VITE_API_URL || '';
-```
+> **Cara lebih mudah:** Di Cloudflare Pages, set `VITE_API_URL` ke URL Vercel backend. Lalu di `fetch-override.ts`, prefix semua `/api/` calls dengan `EXTERNAL_API`.
 
 ---
 
-## Bagian 3: Deploy ke Cloudflare Pages
+## Bagian 5: SPA Routing
 
-### Cara 1 — Via Cloudflare Dashboard (Recommended)
-
-1. **Buka** [dash.cloudflare.com](https://dash.cloudflare.com) → **Pages** → **Create a project**
-
-2. **Connect to Git** → authorize GitHub/GitLab → pilih repo MemeHub
-
-3. **Konfigurasi build**:
-
-   | Setting | Value |
-   |---------|-------|
-   | **Framework preset** | `Vite` |
-   | **Root directory** | `artifacts/memehub` |
-   | **Build command** | `pnpm install && pnpm --filter @workspace/memehub build` |
-   | **Build output directory** | `artifacts/memehub/dist` |
-   | **Node.js version** | `20` |
-
-4. **Environment Variables** (di tab "Environment variables"):
-
-   | Key | Value |
-   |-----|-------|
-   | `VITE_API_URL` | `https://memehub-api.up.railway.app` *(URL backend kamu)* |
-   | `NODE_VERSION` | `20` |
-
-5. Klik **Save and Deploy**
-
-6. Cloudflare akan otomatis build dan deploy. URL akan seperti:
-   `https://memehub.pages.dev`
-
----
-
-### Cara 2 — Via Wrangler CLI
-
-```bash
-# Install Wrangler
-npm install -g wrangler
-
-# Login ke Cloudflare
-wrangler login
-
-# Build frontend
-cd artifacts/memehub
-pnpm build
-
-# Deploy ke Pages
-wrangler pages deploy dist --project-name=memehub
-```
-
----
-
-## Bagian 4: SPA Routing
-
-File `artifacts/memehub/public/_redirects` sudah dibuat:
-
+File `artifacts/memehub/public/_redirects` sudah ada:
 ```
 /* /index.html 200
 ```
 
-File ini memastikan semua route (misal `/post/123`, `/u/username`) di-handle oleh React Router, bukan 404 dari server.
+Ini memastikan route seperti `/post/123`, `/u/username`, `/tag/funny` tidak menghasilkan 404.
 
 ---
 
-## Bagian 5: CORS Backend
+## Bagian 6: Database Supabase
 
-Pastikan backend API mengizinkan domain Cloudflare Pages. Di `artifacts/api-server/src/index.ts`:
-
-```ts
-app.use(cors({
-  origin: [
-    'https://memehub.pages.dev',       // domain CF Pages
-    'https://your-custom-domain.com',   // custom domain (jika ada)
-    'http://localhost:20734',           // development
-  ],
-  credentials: true,
-}));
-```
-
----
-
-## Bagian 6: Database Supabase (Sudah Terkonfigurasi)
-
-Database Supabase sudah dikonfigurasi di environment variable `SUPABASE_DATABASE_URL`. Untuk production, set `DATABASE_URL` di backend server ke:
+Database sudah dikonfigurasi. Connection string (simpan sebagai `DATABASE_URL` di backend):
 
 ```
 postgresql://postgres.mzrwchhkxxzkjinrnosw:HendraWahyu@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres
 ```
 
-**Connection pooling**: URL di atas menggunakan port `6543` (PgBouncer pooler) yang cocok untuk serverless/production load.
+Port **6543** = PgBouncer (connection pooler) — lebih stabil untuk serverless.
 
-### Jalankan Migrasi Manual
-
-Jika perlu migrasi ulang:
-
+### Migrasi ulang jika diperlukan:
 ```bash
-# Dari root project
-SUPABASE_DATABASE_URL="postgresql://..." pnpm --filter @workspace/db drizzle-kit push
+DATABASE_URL="postgresql://postgres.mzrwchhkxxzkjinrnosw:HendraWahyu@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres" pnpm --filter @workspace/db drizzle-kit push
 ```
-
----
-
-## Bagian 7: Custom Domain (Opsional)
-
-1. Di Cloudflare Pages → **Custom domains** → **Set up a custom domain**
-2. Masukkan domain kamu (misal: `memehub.com`)
-3. Ikuti instruksi DNS yang diberikan Cloudflare
-4. Update `ALLOWED_ORIGINS` di backend dengan domain baru
 
 ---
 
 ## Checklist Deploy
 
-- [ ] Backend deployed dan dapat diakses via HTTPS
-- [ ] `VITE_API_URL` diset ke URL backend
-- [ ] Cloudflare Pages build berhasil
-- [ ] `public/_redirects` ada dan berisi `/* /index.html 200`
-- [ ] CORS backend mengizinkan domain Cloudflare Pages
-- [ ] Database Supabase dapat diakses dari backend production
-- [ ] Test login, upload meme, dan komentar di production
+### Backend (Vercel)
+- [ ] `vercel.json` ada di root repo ✅ *(sudah dibuat)*
+- [ ] `artifacts/api-server/api/index.ts` ada ✅ *(sudah dibuat)*
+- [ ] Environment variables diset di Vercel dashboard
+- [ ] Deploy berhasil, endpoint `/api/posts` merespons
+
+### Frontend (Cloudflare Pages)
+- [ ] Build command menggunakan `pnpm install && pnpm --filter @workspace/memehub build`
+- [ ] Root directory = `artifacts/memehub`
+- [ ] `VITE_API_URL` diset ke URL backend Vercel
+- [ ] `public/_redirects` ada ✅ *(sudah dibuat)*
+- [ ] Semua halaman dapat diakses (tag, notifikasi, settings)
 
 ---
 
 ## Troubleshooting
 
-### Build Gagal di Cloudflare Pages
+### Build Gagal di Cloudflare Pages — "Cannot find module @workspace/db"
+Build command harus dimulai dari root monorepo:
+```bash
+cd ../.. && pnpm install && pnpm --filter @workspace/memehub build
+```
 
-Pastikan `pnpm-lock.yaml` ada di root repo dan di-commit ke git. Cloudflare Pages memerlukan lockfile untuk instalasi yang deterministik.
+### Error 500 di Vercel — "DATABASE_URL not set"
+Pastikan `DATABASE_URL` sudah diset di Vercel environment variables, bukan `SUPABASE_DATABASE_URL`.
 
-### API Calls Gagal (CORS Error)
+### CORS Error di Browser
+Tambahkan domain CF Pages ke `ALLOWED_ORIGINS` di Vercel environment variables:
+```
+ALLOWED_ORIGINS=https://memehub.pages.dev,https://your-domain.com
+```
 
-Tambahkan domain CF Pages ke whitelist CORS di backend, lalu redeploy backend.
+### Upload Gambar Gagal di Vercel (413 Payload Too Large)
+Gambar melebihi batas 4.5 MB Vercel free tier. Solusi:
+1. Upgrade ke Vercel Pro, atau
+2. Pindah backend ke Railway (tidak ada batas ukuran body)
 
-### Database Connection Timeout
-
-Supabase pooler (`port 6543`) lebih stabil untuk production. Jika timeout, coba tambahkan `?pgbouncer=true&connection_limit=1` ke connection string.
-
-### HuggingFace Upload Gagal di Production
-
-Pastikan `HUGGINGFACE_TOKEN` di-set di environment backend production.
+### Supabase Connection Error — "SSL required"
+Tambahkan `?sslmode=require` ke connection string, atau pastikan kode menggunakan `ssl: { rejectUnauthorized: false }` (sudah dikonfigurasi di `lib/db/src/index.ts` ✅).
