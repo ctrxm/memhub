@@ -4,6 +4,7 @@ cmds = ["npm install -g pnpm@10 --quiet", "pnpm install --no-frozen-lockfile"]
 [phases.build]
 cmds = [
   "pnpm --filter @workspace/db build",
+  "pnpm --filter @workspace/api-zod build",
   "pnpm --filter @workspace/api-server build"
 ]
 

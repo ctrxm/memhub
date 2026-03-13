@@ -4,8 +4,11 @@
     "composite": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
+    "noEmitOnError": false,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "lib": ["ES2022", "DOM"],
+    "types": []
   },
   "include": ["src"]
 }
