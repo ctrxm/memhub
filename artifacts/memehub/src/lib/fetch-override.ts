@@ -4,22 +4,17 @@ const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   const [resource, config] = args;
   const token = localStorage.getItem('memehub_token');
-  
+
   if (token) {
-    if (config) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`
-      };
-    } else {
-      args[1] = { 
-        headers: { 
-          Authorization: `Bearer ${token}` 
-        } 
-      };
-    }
+    const existingHeaders = new Headers(config?.headers);
+    existingHeaders.set('Authorization', `Bearer ${token}`);
+
+    args[1] = {
+      ...(config || {}),
+      headers: existingHeaders,
+    };
   }
-  
+
   return originalFetch(...args);
 };
 
