@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/db build && pnpm --filter @workspace/api-zod build && pnpm --filter @workspace/api-server build",
+  "buildCommand": "pnpm --filter @workspace/db build && pnpm --filter @workspace/api-zod build && pnpm --filter @workspace/api-server build && pnpm --filter @workspace/memehub build",
+  "outputDirectory": "artifacts/memehub/dist",
   "functions": {
     "artifacts/api-server/api/index.js": {
       "memory": 1024,
@@ -10,8 +10,15 @@
   },
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/(.*)",
       "dest": "artifacts/api-server/api/index.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }

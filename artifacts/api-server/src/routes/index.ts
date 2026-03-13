@@ -17,8 +17,11 @@ import { existsSync, mkdirSync } from "fs";
 
 const router = Router();
 
-// Serve local uploads
-const uploadsDir = path.join(process.cwd(), "uploads");
+// Serve local uploads (dev only; production uses HuggingFace)
+const uploadsDir =
+  process.env.NODE_ENV === "production"
+    ? "/tmp/uploads"
+    : path.join(process.cwd(), "uploads");
 if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
 router.use("/uploads", express.static(uploadsDir));
 
