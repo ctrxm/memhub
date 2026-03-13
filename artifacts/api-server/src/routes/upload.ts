@@ -7,7 +7,10 @@ import { uploadToHuggingFace, checkHuggingFaceConfig } from "../lib/huggingface.
 
 const router = Router();
 
-const uploadsDir = path.join(process.cwd(), "uploads");
+const uploadsDir =
+  process.env.NODE_ENV === "production"
+    ? "/tmp/uploads"
+    : path.join(process.cwd(), "uploads");
 if (!existsSync(uploadsDir)) {
   mkdirSync(uploadsDir, { recursive: true });
 }
