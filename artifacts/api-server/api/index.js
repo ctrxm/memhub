@@ -1,8 +1,18 @@
-// Vercel serverless entry point
-// Uses the pre-built esbuild bundle (dist/app.cjs) to avoid TypeScript recompilation
 "use strict";
 
-const appModule = require("../dist/app.cjs");
+let app;
 
-// Handle both ESM default export (esbuild interop) and direct export
-module.exports = appModule.default || appModule;
+try {
+  const appModule = require("../dist/app.cjs");
+  app = appModule.default || appModule;
+} catch (err) {
+  console.error("[vercel] Failed to load app bundle:", err.message);
+  app = (req, res) => {
+    res.status(500).json({
+      error: "Server failed to initialize",
+      message: err.message,
+    });
+  };
+}
+
+module.exports = app;
