@@ -23,7 +23,7 @@ Panduan lengkap men-deploy **frontend** ke Cloudflare Pages dan **backend API** 
 
 ## Bagian 1: Deploy Backend ke Vercel ⭐ (Recommended)
 
-File `vercel.json` sudah dibuat di root project. Ikuti langkah berikut:
+File `vercel.json` dan `artifacts/api-server/api/index.js` sudah dibuat di project. Ikuti langkah berikut:
 
 ### Langkah-langkah
 
