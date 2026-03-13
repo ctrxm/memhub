@@ -42,10 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [error, token]);
 
   const handleLogin = (newToken: string) => {
+    localStorage.setItem('memehub_token', newToken);
     setToken(newToken);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('memehub_token');
     setToken(null);
     setLocation("/login");
   };

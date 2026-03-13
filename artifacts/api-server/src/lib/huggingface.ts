@@ -1,45 +1,108 @@
-import { createReadStream } from "fs";
-import path from "path";
+import { readFile } from "fs/promises";
 
-const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || "";
-const HF_REPO = process.env.HUGGINGFACE_REPO || "";
+function getConfig() {
+  return {
+    token: process.env.HUGGINGFACE_TOKEN || "",
+    repo: process.env.HUGGINGFACE_REPO || "",
+  };
+}
 
+/**
+ * Upload a file to Hugging Face Datasets using the Commit API (base64 content).
+ * POST https://huggingface.co/api/datasets/{repo}/commit/{branch}
+ * with JSON body containing the file as base64.
+ */
 export async function uploadToHuggingFace(
   filePath: string,
   filename: string,
   mimeType: string
 ): Promise<string> {
-  if (!HF_TOKEN || !HF_REPO) {
-    // Fallback: return a placeholder URL if HF not configured
-    // In dev mode, serve files locally
-    return `/uploads/${filename}`;
+  const { token, repo } = getConfig();
+
+  if (!token || !repo) {
+    console.warn("[HuggingFace] Token or repo not configured, using local fallback.");
+    return `/api/uploads/${filename}`;
   }
 
-  const fileBuffer = await import("fs/promises").then(fs => fs.readFile(filePath));
-  
-  const uploadUrl = `https://huggingface.co/api/datasets/${HF_REPO}/upload/main`;
-  
-  const response = await fetch(`https://huggingface.co/api/datasets/${HF_REPO}/upload/main`, {
+  const fileBuffer = await readFile(filePath);
+  if (fileBuffer.byteLength === 0) {
+    throw new Error("File is empty, cannot upload.");
+  }
+
+  console.log(`[HuggingFace] Uploading ${filename} (${fileBuffer.byteLength} bytes) to ${repo}...`);
+
+  // Commit API — directly embed file as base64 in the commit body
+  const commitUrl = `https://huggingface.co/api/datasets/${repo}/commit/main`;
+  const commitBody = {
+    summary: `Upload meme: ${filename}`,
+    files: [
+      {
+        path: filename,
+        content: fileBuffer.toString("base64"),
+        encoding: "base64",
+      },
+    ],
+  };
+
+  const commitRes = await fetch(commitUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${HF_TOKEN}`,
-      "Content-Type": mimeType,
-      "X-Filename": filename,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body: fileBuffer,
+    body: JSON.stringify(commitBody),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`HuggingFace upload failed: ${error}`);
+  if (!commitRes.ok) {
+    const errText = await commitRes.text();
+    console.error(`[HuggingFace] Commit failed (${commitRes.status}):`, errText.substring(0, 400));
+    throw new Error(`HuggingFace commit failed (${commitRes.status}): ${errText.substring(0, 200)}`);
   }
 
-  const result = await response.json() as { url: string };
-  // Return the raw CDN URL
-  return `https://huggingface.co/datasets/${HF_REPO}/resolve/main/${filename}`;
+  const commitResult = await commitRes.json() as any;
+  console.log(`[HuggingFace] Commit success. oid: ${commitResult?.commitOid}`);
+
+  // Public CDN URL — use ?download=true to force direct download/serve
+  const cdnUrl = `https://huggingface.co/datasets/${repo}/resolve/main/${filename}`;
+  console.log(`[HuggingFace] File URL: ${cdnUrl}`);
+  return cdnUrl;
 }
 
+/**
+ * Get the public CDN URL for a file in the HF dataset repo.
+ */
 export function getHuggingFaceFileUrl(filename: string): string {
-  if (!HF_REPO) return `/uploads/${filename}`;
-  return `https://huggingface.co/datasets/${HF_REPO}/resolve/main/${filename}`;
+  const { repo } = getConfig();
+  if (!repo) return `/api/uploads/${filename}`;
+  return `https://huggingface.co/datasets/${repo}/resolve/main/${filename}`;
+}
+
+/**
+ * Check if HuggingFace is configured and reachable.
+ */
+export async function checkHuggingFaceConfig(): Promise<{
+  configured: boolean;
+  repo: string;
+  error?: string;
+}> {
+  const { token, repo } = getConfig();
+
+  if (!token || !repo) {
+    return { configured: false, repo: repo || "", error: "HUGGINGFACE_TOKEN or HUGGINGFACE_REPO not set" };
+  }
+
+  try {
+    const res = await fetch(`https://huggingface.co/api/datasets/${repo}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      return { configured: false, repo, error: `Repo check failed (${res.status}): ${text.substring(0, 200)}` };
+    }
+
+    return { configured: true, repo };
+  } catch (err: any) {
+    return { configured: false, repo, error: err.message };
+  }
 }
