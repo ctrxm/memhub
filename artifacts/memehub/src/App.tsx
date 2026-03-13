@@ -2,7 +2,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import "@/lib/fetch-override";
 
 import Home from "@/pages/Home";
@@ -19,6 +19,10 @@ import Settings from "@/pages/Settings";
 import Communities from "@/pages/Communities";
 import CommunityPage from "@/pages/CommunityPage";
 import NotFound from "@/pages/not-found";
+import Maintenance from "@/pages/Maintenance";
+import { useEffect, useState } from "react";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,14 +54,53 @@ function Router() {
   );
 }
 
+function AppContent() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [maintenance, setMaintenance] = useState(false);
+  const [statusChecked, setStatusChecked] = useState(false);
+
+  useEffect(() => {
+    fetch(`${BASE}/api/status`)
+      .then(r => r.json())
+      .then(data => {
+        setMaintenance(data.maintenanceMode === true);
+      })
+      .catch(() => {})
+      .finally(() => setStatusChecked(true));
+  }, []);
+
+  // Re-check status every 30 seconds so maintenance can be lifted without refresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch(`${BASE}/api/status`)
+        .then(r => r.json())
+        .then(data => setMaintenance(data.maintenanceMode === true))
+        .catch(() => {});
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Wait until both auth and status are resolved
+  if (!statusChecked || authLoading) return null;
+
+  // Show maintenance page for non-admins
+  if (maintenance && user?.role !== "admin") return <Maintenance />;
+
+  return (
+    <>
+      <Router />
+      <Toaster />
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <AuthProvider>
           <TooltipProvider>
-            <Router />
-            <Toaster />
+            <AppContent />
           </TooltipProvider>
         </AuthProvider>
       </WouterRouter>

@@ -17,7 +17,7 @@ router.get("/", optionalAuth, async (req, res) => {
     }
     const communities = await query;
 
-    const currentUserId = (req as any).userId;
+    const currentUserId = (req as any).user?.id;
     let joinedIds = new Set<number>();
     if (currentUserId) {
       const memberships = await db.select({ communityId: communityMembersTable.communityId })
@@ -46,7 +46,7 @@ router.get("/:slug", optionalAuth, async (req, res) => {
       .where(eq(communitiesTable.slug, req.params.slug));
     if (!community) { res.status(404).json({ error: "Community not found" }); return; }
 
-    const currentUserId = (req as any).userId;
+    const currentUserId = (req as any).user?.id;
     let isMember = false;
     let memberRole: string | null = null;
     if (currentUserId) {
@@ -97,7 +97,7 @@ router.get("/:slug/posts", optionalAuth, async (req, res) => {
 // POST /communities — create a community
 router.post("/", authenticate, async (req, res) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).user.id;
     const { name, description, icon, bannerColor, isPrivate } = req.body;
     if (!name?.trim()) { res.status(400).json({ error: "Name is required" }); return; }
 
@@ -128,7 +128,7 @@ router.post("/", authenticate, async (req, res) => {
 // POST /communities/:slug/join
 router.post("/:slug/join", authenticate, async (req, res) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).user.id;
     const [community] = await db.select().from(communitiesTable)
       .where(eq(communitiesTable.slug, req.params.slug));
     if (!community) { res.status(404).json({ error: "Community not found" }); return; }
@@ -152,7 +152,7 @@ router.post("/:slug/join", authenticate, async (req, res) => {
 // DELETE /communities/:slug/leave
 router.delete("/:slug/leave", authenticate, async (req, res) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).user.id;
     const [community] = await db.select().from(communitiesTable)
       .where(eq(communitiesTable.slug, req.params.slug));
     if (!community) { res.status(404).json({ error: "Community not found" }); return; }
@@ -173,7 +173,7 @@ router.delete("/:slug/leave", authenticate, async (req, res) => {
 // DELETE /communities/:slug — delete community (admin or creator only)
 router.delete("/:slug", authenticate, async (req, res) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).user.id;
     const [community] = await db.select().from(communitiesTable)
       .where(eq(communitiesTable.slug, req.params.slug));
     if (!community) { res.status(404).json({ error: "Community not found" }); return; }

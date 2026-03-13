@@ -10,7 +10,7 @@ import uploadRouter from "./upload.js";
 import adminRouter from "./admin.js";
 import badgesRouter from "./badges.js";
 import communitiesRouter from "./communities.js";
-import { db, postsTable } from "@workspace/db";
+import { db, postsTable, siteSettingsTable } from "@workspace/db";
 import { ilike, eq, and, sql } from "drizzle-orm";
 import { optionalAuth } from "../lib/auth.js";
 import express from "express";
@@ -39,6 +39,17 @@ router.use("/upload", uploadRouter);
 router.use("/admin", adminRouter);
 router.use("/badges", badgesRouter);
 router.use("/communities", communitiesRouter);
+
+// Public status endpoint — always reachable, even during maintenance
+router.get("/status", async (_req, res) => {
+  try {
+    const [settings] = await db.select({ maintenanceMode: siteSettingsTable.maintenanceMode })
+      .from(siteSettingsTable).limit(1);
+    res.json({ maintenanceMode: settings?.maintenanceMode ?? false });
+  } catch {
+    res.json({ maintenanceMode: false });
+  }
+});
 
 // Search route
 router.get("/search", optionalAuth, async (req, res) => {

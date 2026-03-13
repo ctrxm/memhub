@@ -508,19 +508,19 @@ function AdminSettings() {
   });
 
   const [form, setForm] = useState({
-    siteName: "", siteDescription: "", allowRegistration: true, requireApproval: false, huggingFaceRepo: ""
+    siteName: "", siteDescription: "", allowRegistration: true, requireApproval: false, huggingFaceRepo: "", maintenanceMode: false
   });
 
-  // Populate form when data loads
-  useState(() => {
+  useEffect(() => {
     if (settings) setForm({
       siteName: settings.siteName,
       siteDescription: settings.siteDescription,
       allowRegistration: settings.allowRegistration,
       requireApproval: settings.requireApproval,
-      huggingFaceRepo: settings.huggingFaceRepo
+      huggingFaceRepo: settings.huggingFaceRepo,
+      maintenanceMode: settings.maintenanceMode,
     });
-  }); // Note: useEffect is better here normally, keeping simple for code generation flow
+  }, [settings]);
 
   if (isLoading) return <div>Loading...</div>;
 
@@ -531,28 +531,40 @@ function AdminSettings() {
       <div className="space-y-4">
         <div>
           <label className="text-sm font-bold mb-1 block">Site Name</label>
-          <Input value={form.siteName || settings?.siteName} onChange={e => setForm({...form, siteName: e.target.value})} />
+          <Input value={form.siteName} onChange={e => setForm({...form, siteName: e.target.value})} />
         </div>
         <div>
           <label className="text-sm font-bold mb-1 block">Site Description</label>
-          <Textarea value={form.siteDescription || settings?.siteDescription} onChange={e => setForm({...form, siteDescription: e.target.value})} />
+          <Textarea value={form.siteDescription} onChange={e => setForm({...form, siteDescription: e.target.value})} />
         </div>
         <div>
           <label className="text-sm font-bold mb-1 block">Hugging Face Dataset Repo</label>
-          <Input value={form.huggingFaceRepo || settings?.huggingFaceRepo} onChange={e => setForm({...form, huggingFaceRepo: e.target.value})} placeholder="username/dataset-name" />
+          <Input value={form.huggingFaceRepo} onChange={e => setForm({...form, huggingFaceRepo: e.target.value})} placeholder="username/dataset-name" />
           <p className="text-xs text-muted-foreground mt-1">Used for storing uploaded meme images.</p>
         </div>
-        <div className="flex items-center justify-between p-4 bg-background border border-border/50 rounded-xl mt-6">
+
+        <div className="flex items-center justify-between p-4 bg-background border border-border/50 rounded-xl">
           <div>
             <p className="font-bold">Require Post Approval</p>
             <p className="text-sm text-muted-foreground">New posts must be approved by admin before appearing in Fresh.</p>
           </div>
-          <input type="checkbox" className="w-5 h-5 accent-primary" checked={form.requireApproval ?? settings?.requireApproval} onChange={e => setForm({...form, requireApproval: e.target.checked})} />
+          <input type="checkbox" className="w-5 h-5 accent-primary" checked={form.requireApproval} onChange={e => setForm({...form, requireApproval: e.target.checked})} />
+        </div>
+
+        <div className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${form.maintenanceMode ? "bg-destructive/10 border-destructive/40" : "bg-background border-border/50"}`}>
+          <div>
+            <p className="font-bold flex items-center gap-2">
+              Maintenance Mode
+              {form.maintenanceMode && <span className="text-xs text-destructive font-semibold uppercase tracking-wide">Active</span>}
+            </p>
+            <p className="text-sm text-muted-foreground">Only admins can access the site. All other users see a maintenance page.</p>
+          </div>
+          <input type="checkbox" className="w-5 h-5 accent-destructive" checked={form.maintenanceMode} onChange={e => setForm({...form, maintenanceMode: e.target.checked})} />
         </div>
 
         <Button 
           className="w-full mt-4" 
-          onClick={() => updateMutation.mutate({ data: { ...settings!, ...form, maxUploadSizeMb: 5, allowedFileTypes: [], maintenanceMode: false }})}
+          onClick={() => updateMutation.mutate({ data: { ...settings!, ...form, maxUploadSizeMb: settings?.maxUploadSizeMb ?? 10, allowedFileTypes: settings?.allowedFileTypes ?? [] }})}
           isLoading={updateMutation.isPending}
         >
           Save Changes

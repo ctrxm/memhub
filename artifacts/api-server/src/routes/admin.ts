@@ -308,6 +308,11 @@ router.put("/settings", async (req, res) => {
     }
 
     const [updated] = await db.select().from(siteSettingsTable).limit(1);
+
+    // Bust the maintenance mode cache
+    const { invalidateMaintenanceCache } = await import("../lib/maintenance-cache.js");
+    invalidateMaintenanceCache();
+
     res.json({
       siteName: updated.siteName,
       siteDescription: updated.siteDescription,
