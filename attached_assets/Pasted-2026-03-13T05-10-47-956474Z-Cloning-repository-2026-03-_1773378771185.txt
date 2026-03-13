@@ -1,0 +1,143 @@
+2026-03-13T05:10:47.956474Z	Cloning repository...
+2026-03-13T05:10:48.669845Z	From https://github.com/ctrxm/memhub
+2026-03-13T05:10:48.670293Z	 * branch            5c5e53e27895914a0821b05ecc8a5f44abd46b59 -> FETCH_HEAD
+2026-03-13T05:10:48.670396Z	
+2026-03-13T05:10:48.72502Z	HEAD is now at 5c5e53e Update build process to include all necessary library builds
+2026-03-13T05:10:48.725419Z	
+2026-03-13T05:10:48.795844Z	
+2026-03-13T05:10:48.796389Z	Using v2 root directory strategy
+2026-03-13T05:10:48.816669Z	Success: Finished cloning repository files
+2026-03-13T05:10:51.279711Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-03-13T05:10:51.280288Z	
+2026-03-13T05:10:52.384678Z	No Wrangler configuration file found. Continuing.
+2026-03-13T05:10:52.464129Z	Detected the following tools from environment: nodejs@20.20.0, pnpm@10.11.1, npm@10.9.2
+2026-03-13T05:10:52.464708Z	Installing nodejs 20.20.0
+2026-03-13T05:10:53.55033Z	Trying to update node-build... ok
+2026-03-13T05:10:53.638108Z	To follow progress, use 'tail -f /tmp/node-build.20260313051053.498.log' or pass --verbose
+2026-03-13T05:10:53.724448Z	Downloading node-v20.20.0-linux-x64.tar.gz...
+2026-03-13T05:10:54.034592Z	-> https://nodejs.org/dist/v20.20.0/node-v20.20.0-linux-x64.tar.gz
+2026-03-13T05:10:56.376463Z	
+2026-03-13T05:10:56.376732Z	WARNING: node-v20.20.0-linux-x64 is in LTS Maintenance mode and nearing its end of life.
+2026-03-13T05:10:56.377151Z	It only receives *critical* security updates, *critical* bug fixes and documentation updates.
+2026-03-13T05:10:56.377261Z	
+2026-03-13T05:10:56.377344Z	Installing node-v20.20.0-linux-x64...
+2026-03-13T05:10:56.760732Z	Installed node-v20.20.0-linux-x64 to /opt/buildhome/.asdf/installs/nodejs/20.20.0
+2026-03-13T05:10:56.761177Z	
+2026-03-13T05:10:58.472482Z	
+2026-03-13T05:10:58.472818Z	changed 1 package in 659ms
+2026-03-13T05:10:58.478542Z	Reshimming asdf nodejs...
+2026-03-13T05:11:02.169695Z	Preparing pnpm@10.11.1 for immediate activation...
+2026-03-13T05:11:03.324803Z	Installing project dependencies: pnpm install
+2026-03-13T05:11:03.936001Z	Scope: all 9 workspace projects
+2026-03-13T05:11:04.045276Z	../..                                    | Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-03-13T05:11:04.123063Z	../..                                    | +505 ++++++++++++++++++++++++++++++++
+2026-03-13T05:11:05.046498Z	../..                                    | Progress: resolved 505, reused 0, downloaded 129, added 95
+2026-03-13T05:11:06.047274Z	../..                                    | Progress: resolved 505, reused 0, downloaded 233, added 224
+2026-03-13T05:11:07.047668Z	../..                                    | Progress: resolved 505, reused 0, downloaded 243, added 228
+2026-03-13T05:11:08.049125Z	../..                                    | Progress: resolved 505, reused 0, downloaded 305, added 246
+2026-03-13T05:11:09.049836Z	../..                                    | Progress: resolved 505, reused 0, downloaded 426, added 308
+2026-03-13T05:11:09.635127Z	../..                                    | Progress: resolved 505, reused 0, downloaded 505, added 505, done
+2026-03-13T05:11:09.825289Z	.../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-03-13T05:11:09.921272Z	.../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-03-13T05:11:10.157243Z	
+2026-03-13T05:11:10.157594Z	dependencies:
+2026-03-13T05:11:10.1577Z	+ @hookform/resolvers 3.10.0
+2026-03-13T05:11:10.157875Z	+ @radix-ui/react-accordion 1.2.12
+2026-03-13T05:11:10.158009Z	+ @radix-ui/react-alert-dialog 1.1.15
+2026-03-13T05:11:10.158111Z	+ @radix-ui/react-aspect-ratio 1.1.8
+2026-03-13T05:11:10.158236Z	+ @radix-ui/react-avatar 1.1.11
+2026-03-13T05:11:10.158353Z	+ @radix-ui/react-checkbox 1.3.3
+2026-03-13T05:11:10.158477Z	+ @radix-ui/react-collapsible 1.1.12
+2026-03-13T05:11:10.15868Z	+ @radix-ui/react-context-menu 2.2.16
+2026-03-13T05:11:10.159092Z	+ @radix-ui/react-dialog 1.1.15
+2026-03-13T05:11:10.159341Z	+ @radix-ui/react-dropdown-menu 2.1.16
+2026-03-13T05:11:10.15947Z	+ @radix-ui/react-hover-card 1.1.15
+2026-03-13T05:11:10.159805Z	+ @radix-ui/react-label 2.1.8
+2026-03-13T05:11:10.159957Z	+ @radix-ui/react-menubar 1.1.16
+2026-03-13T05:11:10.160054Z	+ @radix-ui/react-navigation-menu 1.2.14
+2026-03-13T05:11:10.160153Z	+ @radix-ui/react-popover 1.1.15
+2026-03-13T05:11:10.160296Z	+ @radix-ui/react-progress 1.1.8
+2026-03-13T05:11:10.16041Z	+ @radix-ui/react-radio-group 1.3.8
+2026-03-13T05:11:10.160503Z	+ @radix-ui/react-scroll-area 1.2.10
+2026-03-13T05:11:10.160646Z	+ @radix-ui/react-select 2.2.6
+2026-03-13T05:11:10.160843Z	+ @radix-ui/react-separator 1.1.8
+2026-03-13T05:11:10.161161Z	+ @radix-ui/react-slider 1.3.6
+2026-03-13T05:11:10.161301Z	+ @radix-ui/react-slot 1.2.4
+2026-03-13T05:11:10.161678Z	+ @radix-ui/react-switch 1.2.6
+2026-03-13T05:11:10.162084Z	+ @radix-ui/react-tabs 1.1.13
+2026-03-13T05:11:10.162228Z	+ @radix-ui/react-toast 1.2.15
+2026-03-13T05:11:10.16236Z	+ @radix-ui/react-toggle 1.1.10
+2026-03-13T05:11:10.162455Z	+ @radix-ui/react-toggle-group 1.1.11
+2026-03-13T05:11:10.162588Z	+ @radix-ui/react-tooltip 1.2.8
+2026-03-13T05:11:10.162687Z	+ @tanstack/react-query 5.90.21
+2026-03-13T05:11:10.162789Z	+ @workspace/api-client-react 0.0.0 <- ../../lib/api-client-react
+2026-03-13T05:11:10.162948Z	+ class-variance-authority 0.7.1
+2026-03-13T05:11:10.163051Z	+ clsx 2.1.1
+2026-03-13T05:11:10.163146Z	+ cmdk 1.1.1
+2026-03-13T05:11:10.16324Z	+ date-fns 3.6.0
+2026-03-13T05:11:10.163331Z	+ embla-carousel-react 8.6.0
+2026-03-13T05:11:10.163426Z	+ framer-motion 12.35.1
+2026-03-13T05:11:10.16377Z	+ input-otp 1.4.2
+2026-03-13T05:11:10.164108Z	+ lucide-react 0.545.0
+2026-03-13T05:11:10.164312Z	+ next-themes 0.4.6
+2026-03-13T05:11:10.164441Z	+ react 19.1.0
+2026-03-13T05:11:10.164722Z	+ react-day-picker 9.14.0
+2026-03-13T05:11:10.164828Z	+ react-dom 19.1.0
+2026-03-13T05:11:10.164887Z	+ react-dropzone 15.0.0
+2026-03-13T05:11:10.164989Z	+ react-hook-form 7.71.2
+2026-03-13T05:11:10.165126Z	+ react-icons 5.6.0
+2026-03-13T05:11:10.165199Z	+ react-resizable-panels 2.1.9
+2026-03-13T05:11:10.165417Z	+ recharts 2.15.4
+2026-03-13T05:11:10.165504Z	+ sonner 2.0.7
+2026-03-13T05:11:10.16567Z	+ tailwind-merge 3.5.0
+2026-03-13T05:11:10.165785Z	+ tw-animate-css 1.4.0
+2026-03-13T05:11:10.165871Z	+ vaul 1.1.2
+2026-03-13T05:11:10.165936Z	+ wouter 3.9.0
+2026-03-13T05:11:10.165991Z	+ zod 3.25.76
+2026-03-13T05:11:10.16606Z	
+2026-03-13T05:11:10.166121Z	devDependencies:
+2026-03-13T05:11:10.166181Z	+ @replit/vite-plugin-cartographer 0.5.0
+2026-03-13T05:11:10.166241Z	+ @replit/vite-plugin-dev-banner 0.1.2
+2026-03-13T05:11:10.166296Z	+ @replit/vite-plugin-runtime-error-modal 0.0.6
+2026-03-13T05:11:10.166351Z	+ @tailwindcss/typography 0.5.19
+2026-03-13T05:11:10.166423Z	+ @tailwindcss/vite 4.2.1
+2026-03-13T05:11:10.166477Z	+ @types/node 25.3.5
+2026-03-13T05:11:10.166559Z	+ @types/react 19.2.14
+2026-03-13T05:11:10.166619Z	+ @types/react-dom 19.2.3
+2026-03-13T05:11:10.166676Z	+ @vitejs/plugin-react 5.1.4
+2026-03-13T05:11:10.166755Z	+ tailwindcss 4.2.1
+2026-03-13T05:11:10.16681Z	+ vite 7.3.1
+2026-03-13T05:11:10.166864Z	
+2026-03-13T05:11:10.200812Z	../.. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-03-13T05:11:10.213761Z	../.. preinstall: Done
+2026-03-13T05:11:10.367112Z	Done in 6.7s using pnpm v10.11.1
+2026-03-13T05:11:10.387085Z	Executing user command: cd ../.. && pnpm install && pnpm --filter @workspace/memehub build
+2026-03-13T05:11:10.983909Z	Scope: all 9 workspace projects
+2026-03-13T05:11:11.070024Z	Lockfile is up to date, resolution step is skipped
+2026-03-13T05:11:11.149553Z	Already up to date
+2026-03-13T05:11:12.03106Z	
+2026-03-13T05:11:12.078722Z	. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-03-13T05:11:12.093265Z	. preinstall: Done
+2026-03-13T05:11:12.211684Z	Done in 1.5s using pnpm v10.11.1
+2026-03-13T05:11:12.820837Z	
+2026-03-13T05:11:12.821216Z	> @workspace/memehub@0.0.0 build /opt/buildhome/repo/artifacts/memehub
+2026-03-13T05:11:12.821356Z	> vite build --config vite.config.ts
+2026-03-13T05:11:12.821458Z	
+2026-03-13T05:11:13.255312Z	[31mfailed to load config from /opt/buildhome/repo/artifacts/memehub/vite.config.ts[39m
+2026-03-13T05:11:13.257471Z	[31merror during build:
+2026-03-13T05:11:13.257703Z	Error: PORT environment variable is required but was not provided.
+2026-03-13T05:11:13.257831Z	    at file:///opt/buildhome/repo/artifacts/memehub/node_modules/.vite-temp/vite.config.ts.timestamp-1773378673088-9d60de5315488.mjs:10:9
+2026-03-13T05:11:13.257931Z	    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-03-13T05:11:13.258025Z	    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-03-13T05:11:13.258118Z	    at async loadConfigFromBundledFile (file:///opt/buildhome/repo/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35909:12)
+2026-03-13T05:11:13.258216Z	    at async bundleAndLoadConfigFile (file:///opt/buildhome/repo/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35797:17)
+2026-03-13T05:11:13.258302Z	    at async loadConfigFromFile (file:///opt/buildhome/repo/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35764:42)
+2026-03-13T05:11:13.258412Z	    at async resolveConfig (file:///opt/buildhome/repo/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35413:22)
+2026-03-13T05:11:13.258509Z	    at async createBuilder (file:///opt/buildhome/repo/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33875:19)
+2026-03-13T05:11:13.258633Z	    at async CAC.<anonymous> (file:///opt/buildhome/repo/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/cli.js:629:10)[39m
+2026-03-13T05:11:13.279865Z	/opt/buildhome/repo/artifacts/memehub:
+2026-03-13T05:11:13.280133Z	 ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/memehub@0.0.0 build: `vite build --config vite.config.ts`
+2026-03-13T05:11:13.280264Z	Exit status 1
+2026-03-13T05:11:13.304236Z	Failed: Error while executing user command. Exited with error code: 1
+2026-03-13T05:11:13.312903Z	Failed: build command exited with code: 1
+2026-03-13T05:11:14.499529Z	Failed: error occurred while running build command
