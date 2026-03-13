@@ -1,7 +1,7 @@
 import { pgTable, text, serial, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { usersTable } from "./users";
+import { usersTable } from "./users.js";
 
 export const postTypeEnum = pgEnum("post_type", ["image", "gif", "video"]);
 export const postStatusEnum = pgEnum("post_status", ["pending", "approved", "removed"]);
