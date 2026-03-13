@@ -1,8 +1,8 @@
-# Workspace
+# MemeHub - 9GAG Clone
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+MemeHub adalah platform berbagi meme mirip 9GAG dengan fitur lengkap, dibangun dengan React + Vite (frontend) dan Express (backend API).
 
 ## Stack
 
@@ -10,87 +10,88 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Express 5
+- **Frontend**: React + Vite + TailwindCSS + shadcn/ui
+- **Backend**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
+- **Authentication**: JWT (bcryptjs + jsonwebtoken)
+- **Image Storage**: Hugging Face Datasets (configurable, fallback to local)
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Features
+
+- **Feed**: Hot/Trending/Fresh/Top tabs dengan infinite scroll
+- **Posts**: Upload meme (image/gif), vote, save, share
+- **Comments**: Threaded comments dengan vote
+- **User Profiles**: Avatar, bio, stats, follow/unfollow
+- **Notifications**: Upvotes, comments, follows, replies
+- **Tags**: Kategori meme yang bisa difilter
+- **Search**: Cari post berdasarkan judul
+- **Admin Panel**: Stats dashboard, manajemen user (ban/role), manajemen post (approve/remove), tags, site settings
+- **Dark/Light Mode**: Toggle tema
+- **Responsive**: Mobile-friendly
+
 ## Structure
 
 ```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+artifacts/
+├── api-server/         # Express API server
+│   └── src/
+│       ├── lib/        # auth.ts, huggingface.ts
+│       └── routes/     # auth, posts, comments, users, tags, notifications, upload, admin
+├── memehub/            # React + Vite frontend
+│   └── src/
+│       ├── components/ # Navbar, Sidebar, PostCard
+│       ├── pages/      # Home, PostDetail, Upload, Profile, Admin, Login, Register, etc.
+│       └── hooks/      # use-auth.tsx
+lib/
+├── api-spec/           # OpenAPI spec
+├── api-client-react/   # Generated React Query hooks
+├── api-zod/            # Generated Zod schemas
+└── db/
+    └── src/schema/     # users, posts, comments, tags, notifications, settings
 ```
 
-## TypeScript & Composite Projects
+## Demo Accounts
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+- **Admin**: email `admin@memehub.com`, password `admin123`
+- **Regular users**: `memekid@test.com`, `dankmaster@test.com` (password: pass123)
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Environment Variables
 
-## Root Scripts
+- `DATABASE_URL`: PostgreSQL connection string (auto-provided)
+- `JWT_SECRET`: Secret key for JWT signing (defaults to dev key)
+- `HUGGINGFACE_TOKEN`: Hugging Face API token for image upload
+- `HUGGINGFACE_REPO`: Hugging Face Dataset repo (e.g., `username/memes-dataset`)
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## Hugging Face Setup
 
-## Packages
+Set `HUGGINGFACE_TOKEN` and `HUGGINGFACE_REPO` in environment secrets. Images will be uploaded to the dataset repo. Without these, images are served from local `/uploads/` directory.
 
-### `artifacts/api-server` (`@workspace/api-server`)
+## Cloudflare Pages Deployment
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+For Cloudflare Pages:
+1. Build frontend: `pnpm --filter @workspace/memehub run build`
+2. Deploy `artifacts/memehub/dist/` to Cloudflare Pages
+3. Set up a separate backend (e.g., Cloudflare Workers or VPS) for `/api` routes
+4. Update API base URL in frontend config
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+## API Routes
 
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+- `POST /api/auth/register` - Register
+- `POST /api/auth/login` - Login
+- `GET /api/posts?section=hot` - Feed
+- `POST /api/posts` - Create post
+- `POST /api/posts/:id/vote` - Vote
+- `POST /api/posts/:id/save` - Save/unsave
+- `GET /api/posts/:id/comments` - Comments
+- `POST /api/posts/:id/comments` - Add comment
+- `GET /api/users/:username` - Profile
+- `POST /api/users/:username/follow` - Follow
+- `GET /api/tags` - All tags
+- `GET /api/notifications` - Notifications
+- `POST /api/upload/image` - Upload image
+- `GET /api/admin/stats` - Admin stats (admin only)
+- `GET /api/admin/users` - Manage users (admin only)
+- etc.

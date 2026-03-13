@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "MemeHub - 9GAG Clone"
+version = "1.0.0"
+id = "artifacts/memehub"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 20734
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/memehub run dev"
+
+[services.env]
+PORT = "20734"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/memehub", "run", "build"]
+publicDir = "artifacts/memehub/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

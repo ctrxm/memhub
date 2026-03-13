@@ -1,0 +1,20 @@
+packages:
+  "framer-motion": "For page transitions and smooth UI animations"
+  "react-hook-form": "For robust form state management"
+  "@hookform/resolvers": "Zod integration for form validation"
+  "date-fns": "For formatting post and comment timestamps"
+  "react-dropzone": "For drag and drop image uploading"
+  "clsx": "For conditional class name merging"
+  "tailwind-merge": "For merging tailwind classes safely"
+
+images:
+  - path: "artifacts/memehub/public/images/auth-bg.png"
+    description: "A dark, energetic abstract background for a meme website. Features deep blacks, dark grays, and vibrant neon orange and electric blue accents. Geometric shapes and a subtle halftone comic-book style dot pattern."
+    aspect_ratio: "16:9"
+  - path: "artifacts/memehub/public/images/logo-icon.png"
+    description: "A bold, minimalist logo icon for a meme site. A stylized laughing face or an energetic lightning bolt in bright neon orange on a dark transparent background."
+    aspect_ratio: "1:1"
+
+notes:
+  - The API requires a Bearer token in the Authorization header. A global fetch interceptor is implemented in src/lib/fetch-override.ts to automatically attach the token from localStorage.
+  - Using generated hooks from @workspace/api-client-react
