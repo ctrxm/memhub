@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, postsTable, usersTable, votesTable, savedPostsTable, postTagsTable, tagsTable, followsTable } from "@workspace/db";
 import { eq, and, desc, asc, sql, ilike, or, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../lib/auth.js";
+import { getUserBadges } from "./badges.js";
 
 const router = Router();
 
@@ -31,6 +32,7 @@ function formatPost(post: any, author: any, tags: any[], userVote: string | null
       id: String(author.id),
       username: author.username,
       avatar: author.avatar || null,
+      badges: author.badges || [],
     },
     createdAt: post.createdAt,
   };
@@ -43,7 +45,11 @@ async function getPostsWithDetails(posts: any[], userId?: number) {
   const authorIds = [...new Set(posts.map(p => p.authorId))];
 
   const authors = await db.select().from(usersTable).where(inArray(usersTable.id, authorIds));
-  const authorMap = new Map(authors.map(a => [a.id, a]));
+
+  const badgesPerAuthor = await Promise.all(authors.map(a => getUserBadges(a.id).then(badges => ({ id: a.id, badges }))));
+  const badgesMap = new Map(badgesPerAuthor.map(b => [b.id, b.badges]));
+
+  const authorMap = new Map(authors.map(a => [a.id, { ...a, badges: badgesMap.get(a.id) || [] }]));
 
   const allPostTags = await db.select({
     postId: postTagsTable.postId,
