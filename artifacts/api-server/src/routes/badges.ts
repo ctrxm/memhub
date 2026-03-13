@@ -73,18 +73,28 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 router.post("/:id/award", requireAdmin, async (req, res) => {
   try {
     const badgeId = parseInt(req.params.id);
-    const { userId } = req.body;
-    if (!userId) {
-      res.status(400).json({ error: "Bad Request", message: "userId required" });
+    const { userId, username } = req.body;
+
+    let resolvedUserId: number | null = null;
+
+    if (username) {
+      const [u] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, username));
+      if (!u) { res.status(404).json({ error: "Not Found", message: "User not found" }); return; }
+      resolvedUserId = u.id;
+    } else if (userId) {
+      resolvedUserId = parseInt(userId);
+    } else {
+      res.status(400).json({ error: "Bad Request", message: "userId or username required" });
       return;
     }
+
     const existing = await db.select().from(userBadgesTable)
-      .where(and(eq(userBadgesTable.userId, parseInt(userId)), eq(userBadgesTable.badgeId, badgeId)));
+      .where(and(eq(userBadgesTable.userId, resolvedUserId), eq(userBadgesTable.badgeId, badgeId)));
     if (existing.length) {
       res.status(409).json({ error: "Conflict", message: "Badge already awarded" });
       return;
     }
-    await db.insert(userBadgesTable).values({ userId: parseInt(userId), badgeId });
+    await db.insert(userBadgesTable).values({ userId: resolvedUserId, badgeId });
     res.json({ success: true, message: "Badge awarded" });
   } catch (err) {
     console.error("Award badge error:", err);

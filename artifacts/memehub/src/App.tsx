@@ -16,6 +16,8 @@ import Admin from "@/pages/Admin";
 import TagPage from "@/pages/TagPage";
 import Notifications from "@/pages/Notifications";
 import Settings from "@/pages/Settings";
+import Communities from "@/pages/Communities";
+import CommunityPage from "@/pages/CommunityPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -41,6 +43,8 @@ function Router() {
       <Route path="/tag/:slug" component={TagPage} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/settings" component={Settings} />
+      <Route path="/communities" component={Communities} />
+      <Route path="/c/:slug" component={CommunityPage} />
       <Route component={NotFound} />
     </Switch>
   );

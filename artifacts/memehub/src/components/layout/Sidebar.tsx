@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { Hash, TrendingUp, Flame, Clock, Trophy, Users, PlusCircle, Bell } from "lucide-react";
-import { Badge, Button, Avatar } from "@/components/ui/shared";
+import { Hash, TrendingUp, Flame, Clock, Trophy, Users, PlusCircle, Bell, Globe } from "lucide-react";
+import { Badge, Button } from "@/components/ui/shared";
 import { useGetTags } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 export function Sidebar() {
   const { data: tagsData } = useGetTags();
@@ -11,6 +12,17 @@ export function Sidebar() {
   const [location] = useLocation();
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const currentSection = searchParams.get("section") || "hot";
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  const [communities, setCommunities] = useState<any[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("ovrhub_token") || localStorage.getItem("memehub_token");
+    fetch(`${BASE}/api/communities`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.json())
+      .then(d => setCommunities((d.communities || []).slice(0, 5)))
+      .catch(() => {});
+  }, []);
 
   return (
     <aside className="w-64 shrink-0 hidden lg:block sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto pr-4 scrollbar-hide">
@@ -25,7 +37,7 @@ export function Sidebar() {
       )}
 
       {/* Main Navigation */}
-      <div className="mb-6 space-y-1">
+      <div className="mb-4 space-y-0.5">
         <NavLink active={location === "/" && currentSection === "hot"} href="/" icon={<Flame className="w-5 h-5 text-red-500" />} label="Hot" />
         <NavLink active={location === "/" && currentSection === "trending"} href="/?section=trending" icon={<TrendingUp className="w-5 h-5 text-blue-400" />} label="Trending" />
         <NavLink active={location === "/" && currentSection === "fresh"} href="/?section=fresh" icon={<Clock className="w-5 h-5 text-green-400" />} label="Fresh" />
@@ -33,24 +45,51 @@ export function Sidebar() {
         {isAuthenticated && (
           <NavLink active={location === "/" && currentSection === "following"} href="/?section=following" icon={<Users className="w-5 h-5 text-purple-400" />} label="Following" />
         )}
+        {isAuthenticated && (
+          <NavLink active={location === "/notifications"} href="/notifications" icon={<Bell className="w-5 h-5 text-orange-400" />} label="Notifications" />
+        )}
       </div>
 
-      {/* Notifications shortcut for logged-in users */}
-      {isAuthenticated && (
-        <div className="mb-6">
-          <NavLink active={location === "/notifications"} href="/notifications" icon={<Bell className="w-5 h-5 text-orange-400" />} label="Notifications" />
+      {/* Communities */}
+      <div className="mb-4 bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display font-bold text-base flex items-center gap-2">
+            <Globe className="w-4 h-4 text-cyan-400" /> Communities
+          </h3>
+          <Link href="/communities">
+            <span className="text-xs text-primary font-bold hover:underline">All</span>
+          </Link>
         </div>
-      )}
+        <div className="space-y-1">
+          {communities.map(c => (
+            <Link key={c.id} href={`/c/${c.slug}`}>
+              <div className={cn(
+                "flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-all cursor-pointer",
+                location === `/c/${c.slug}` ? "bg-primary/10 text-primary" : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+              )}>
+                <span className="text-base leading-none">{c.icon}</span>
+                <span className="font-semibold text-sm truncate">{c.name}</span>
+                {c.isMember && <span className="ml-auto text-[10px] text-primary font-bold">✓</span>}
+              </div>
+            </Link>
+          ))}
+          {communities.length === 0 && (
+            <Link href="/communities">
+              <span className="text-xs text-muted-foreground hover:text-primary transition-colors font-medium">Browse communities →</span>
+            </Link>
+          )}
+        </div>
+      </div>
 
       {/* Popular Tags */}
-      <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
-        <h3 className="font-display font-bold text-lg mb-4 flex items-center gap-2">
-          <Hash className="w-5 h-5 text-primary" /> Popular Tags
+      <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm mb-4">
+        <h3 className="font-display font-bold text-base mb-3 flex items-center gap-2">
+          <Hash className="w-4 h-4 text-primary" /> Popular Tags
         </h3>
-        <div className="flex flex-wrap gap-2">
-          {tagsData?.tags?.slice(0, 15).map(tag => (
+        <div className="flex flex-wrap gap-1.5">
+          {tagsData?.tags?.slice(0, 12).map(tag => (
             <Link key={tag.id} href={`/tag/${tag.slug}`}>
-              <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground cursor-pointer transition-colors px-3 py-1.5 text-sm font-semibold">
+              <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground cursor-pointer transition-colors px-2.5 py-1 text-xs font-semibold">
                 {tag.name}
               </Badge>
             </Link>
@@ -61,7 +100,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="mt-6 text-xs text-muted-foreground space-y-2 px-2">
+      <div className="text-xs text-muted-foreground space-y-2 px-2">
         <p>© 2025 OVRHUB.</p>
         <div className="flex gap-3">
           <a href="#" className="hover:text-primary transition-colors">Rules</a>

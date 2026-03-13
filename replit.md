@@ -29,7 +29,9 @@ OVRHUB (rebranded from MemeHub) adalah platform berbagi meme mirip 9GAG dengan f
 - **Notifications**: Upvotes, comments, follows, replies
 - **Tags**: Kategori meme yang bisa difilter
 - **Search**: Cari post berdasarkan judul
-- **Admin Panel**: Stats dashboard, manajemen user (ban/role), manajemen post (approve/remove), tags, site settings
+- **Admin Panel**: Stats dashboard, users management, posts approval, Badges CRUD + award, Tags CRUD, site settings
+- **Communities**: Full 9GAG-style community system — create, join/leave, community feeds, community sidebar widget
+- **Navigation**: Hamburger menu drawer (left of logo) with full nav, communities, tags. Search/upload moved out of navbar
 - **Dark/Light Mode**: Toggle tema
 - **Responsive**: Mobile-friendly
 

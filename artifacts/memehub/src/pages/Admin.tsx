@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useGetAdminStats, useGetAdminPosts, useUpdatePostStatus, useGetAdminSettings, useUpdateAdminSettings } from "@workspace/api-client-react";
 import { Button, Input, Badge, Textarea } from "@/components/ui/shared";
-import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck } from "lucide-react";
+import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck, Hash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
 import { UserBadge } from "@/components/ui/UserBadge";
@@ -12,7 +12,7 @@ import { UserBadge } from "@/components/ui/UserBadge";
 export default function Admin() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "badges" | "settings">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "badges" | "tags" | "settings">("dashboard");
 
   if (user?.role !== 'admin') {
     return (
@@ -38,6 +38,7 @@ export default function Admin() {
           <AdminTab active={tab === "posts"} icon={<ImageIcon />} label="Pending Posts" onClick={() => setTab("posts")} />
           <AdminTab active={tab === "users"} icon={<Users />} label="Users" onClick={() => setTab("users")} />
           <AdminTab active={tab === "badges"} icon={<Award />} label="Badges" onClick={() => setTab("badges")} />
+          <AdminTab active={tab === "tags"} icon={<Hash />} label="Tags" onClick={() => setTab("tags")} />
           <AdminTab active={tab === "settings"} icon={<Settings />} label="Site Settings" onClick={() => setTab("settings")} />
         </div>
 
@@ -47,6 +48,7 @@ export default function Admin() {
           {tab === "posts" && <AdminPosts />}
           {tab === "users" && <AdminUsers />}
           {tab === "badges" && <AdminBadges />}
+          {tab === "tags" && <AdminTags />}
           {tab === "settings" && <AdminSettings />}
         </div>
       </div>
@@ -371,6 +373,121 @@ function AdminBadges() {
                 <UserCheck className="w-3.5 h-3.5" /> Award
               </Button>
               <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 shrink-0" onClick={() => deleteBadge(badge.id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminTags() {
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const { toast } = useToast();
+  const [tags, setTags] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ name: "", color: "#FF6600" });
+  const [saving, setSaving] = useState(false);
+
+  const token = localStorage.getItem("ovrhub_token") || localStorage.getItem("memehub_token");
+  const authHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+
+  const loadTags = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/tags`);
+      const data = await res.json();
+      setTags(data.tags || []);
+    } catch { }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadTags(); }, []);
+
+  const createTag = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    try {
+      const res = await fetch(`${BASE}/api/admin/tags`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ name: form.name.trim(), slug, color: form.color }),
+      });
+      if (res.ok) {
+        toast({ title: `Tag "${form.name}" created!` });
+        setForm({ name: "", color: "#FF6600" });
+        loadTags();
+      } else {
+        const d = await res.json();
+        toast({ title: d.error || "Error creating tag", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+    setSaving(false);
+  };
+
+  const deleteTag = async (id: string, name: string) => {
+    if (!confirm(`Delete tag "${name}"? Posts will lose this tag.`)) return;
+    try {
+      const res = await fetch(`${BASE}/api/admin/tags/${id}`, { method: "DELETE", headers: authHeaders });
+      if (res.ok) { toast({ title: `Tag "${name}" deleted` }); loadTags(); }
+    } catch { }
+  };
+
+  return (
+    <div>
+      <h3 className="text-xl font-bold mb-6">Tags Management</h3>
+
+      {/* Create form */}
+      <div className="bg-background border border-border/50 rounded-xl p-5 mb-6">
+        <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-4">New Tag</h4>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-40">
+            <label className="text-xs font-bold mb-1 block">Tag Name *</label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Dank Memes" onKeyDown={e => e.key === "Enter" && createTag()} />
+          </div>
+          <div>
+            <label className="text-xs font-bold mb-1 block">Color</label>
+            <input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} className="w-12 h-10 rounded-lg border border-border cursor-pointer" />
+          </div>
+          {form.name && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-mono">Slug:</span>
+              <code className="text-xs bg-secondary rounded px-2 py-1">
+                {form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}
+              </code>
+            </div>
+          )}
+          <Button onClick={createTag} isLoading={saving} className="gap-2">
+            <Plus className="w-4 h-4" /> Create Tag
+          </Button>
+        </div>
+      </div>
+
+      {/* Tags list */}
+      {loading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-xl bg-secondary animate-pulse" />)}
+        </div>
+      ) : tags.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Hash className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p className="font-bold">No tags yet</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {tags.map(tag => (
+            <div key={tag.id} className="flex items-center gap-3 p-3 bg-background border border-border/50 rounded-xl">
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color || "#FF6600" }} />
+              <div className="flex-1 min-w-0">
+                <span className="font-bold">{tag.name}</span>
+                <span className="text-xs text-muted-foreground ml-2">#{tag.slug}</span>
+              </div>
+              <Badge variant="secondary" className="text-xs shrink-0">{formatNumber(tag.postsCount || 0)} posts</Badge>
+              <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 shrink-0" onClick={() => deleteTag(tag.id, tag.name)}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
