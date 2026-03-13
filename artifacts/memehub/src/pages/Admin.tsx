@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -11,7 +11,7 @@ import { formatNumber } from "@/lib/utils";
 export default function Admin() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<'dashboard'|'posts'|'settings'>('dashboard');
+  const [tab, setTab] = useState<'dashboard'|'posts'|'users'|'settings'>('dashboard');
 
   if (user?.role !== 'admin') {
     return (
@@ -35,6 +35,7 @@ export default function Admin() {
           <h2 className="font-display text-2xl font-bold mb-6 px-4">Admin Panel</h2>
           <AdminTab active={tab === 'dashboard'} icon={<Activity />} label="Dashboard" onClick={() => setTab('dashboard')} />
           <AdminTab active={tab === 'posts'} icon={<ImageIcon />} label="Pending Posts" onClick={() => setTab('posts')} />
+          <AdminTab active={tab === 'users'} icon={<Users />} label="Users" onClick={() => setTab('users')} />
           <AdminTab active={tab === 'settings'} icon={<Settings />} label="Site Settings" onClick={() => setTab('settings')} />
         </div>
 
@@ -42,6 +43,7 @@ export default function Admin() {
         <div className="flex-1 bg-card border border-border/50 rounded-2xl p-6 shadow-sm min-h-[600px]">
           {tab === 'dashboard' && <AdminDashboard />}
           {tab === 'posts' && <AdminPosts />}
+          {tab === 'users' && <AdminUsers />}
           {tab === 'settings' && <AdminSettings />}
         </div>
       </div>
@@ -118,6 +120,82 @@ function AdminPosts() {
         ))}
         {data?.posts?.length === 0 && <p className="text-muted-foreground">No pending posts to review.</p>}
       </div>
+    </div>
+  );
+}
+
+function AdminUsers() {
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const { toast } = useToast();
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${BASE}/api/admin/users`);
+        const data = await res.json();
+        setUsers(data.users || []);
+      } catch {}
+      setIsLoading(false);
+    })();
+  }, []);
+
+  const filtered = users.filter(u => u.username?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
+
+  const toggleAdmin = async (userId: number, currentRole: string) => {
+    const newRole = currentRole === "admin" ? "user" : "admin";
+    try {
+      const res = await fetch(`${BASE}/api/admin/users/${userId}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        toast({ title: `User ${newRole === "admin" ? "promoted to admin" : "demoted to user"}` });
+      }
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div>
+      <h3 className="text-xl font-bold mb-6">Users Management</h3>
+      <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by username or email..." className="mb-4" />
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-12 rounded-xl bg-secondary animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(u => (
+            <div key={u.id} className="flex items-center gap-3 p-3 bg-background border border-border/50 rounded-xl">
+              <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                {u.username?.[0]?.toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm truncate">{u.username}</p>
+                <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+              </div>
+              <Badge variant={u.role === "admin" ? "default" : "secondary"} className="text-xs shrink-0">
+                {u.role}
+              </Badge>
+              <Button
+                size="sm"
+                variant={u.role === "admin" ? "destructive" : "secondary"}
+                className="text-xs shrink-0"
+                onClick={() => toggleAdmin(u.id, u.role)}
+              >
+                {u.role === "admin" ? "Demote" : "Promote"}
+              </Button>
+            </div>
+          ))}
+          {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No users found.</p>}
+        </div>
+      )}
     </div>
   );
 }

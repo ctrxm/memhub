@@ -35,6 +35,7 @@ export default function Home() {
         <TabLink active={sectionQuery === 'trending'} href="/?section=trending">Trending</TabLink>
         <TabLink active={sectionQuery === 'fresh'} href="/?section=fresh">Fresh</TabLink>
         <TabLink active={sectionQuery === 'top'} href="/?section=top">Top</TabLink>
+        <TabLink active={sectionQuery === 'following'} href="/?section=following">Following</TabLink>
       </div>
 
       {isLoading && page === 1 ? (

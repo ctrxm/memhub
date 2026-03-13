@@ -229,4 +229,36 @@ router.get("/me/saved", authenticate, async (req, res) => {
   }
 });
 
+// PUT /users/me — update own profile
+router.put("/me", authenticate, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const { bio, avatar, username } = req.body;
+
+    const updates: any = {};
+    if (bio !== undefined) updates.bio = bio;
+    if (avatar !== undefined) updates.avatar = avatar;
+    if (username && username !== user.username) {
+      const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, username));
+      if (existing) {
+        res.status(409).json({ error: "Conflict", message: "Username already taken" });
+        return;
+      }
+      updates.username = username;
+    }
+
+    if (!Object.keys(updates).length) {
+      res.status(400).json({ error: "Bad Request", message: "No fields to update" });
+      return;
+    }
+
+    const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id)).returning();
+    const profile = await getUserProfile(updated, user.id);
+    res.json(profile);
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 export default router;

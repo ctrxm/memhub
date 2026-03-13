@@ -13,6 +13,9 @@ import PostDetail from "@/pages/PostDetail";
 import Upload from "@/pages/Upload";
 import Search from "@/pages/Search";
 import Admin from "@/pages/Admin";
+import TagPage from "@/pages/TagPage";
+import Notifications from "@/pages/Notifications";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -35,6 +38,9 @@ function Router() {
       <Route path="/upload" component={Upload} />
       <Route path="/search" component={Search} />
       <Route path="/admin" component={Admin} />
+      <Route path="/tag/:slug" component={TagPage} />
+      <Route path="/notifications" component={Notifications} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

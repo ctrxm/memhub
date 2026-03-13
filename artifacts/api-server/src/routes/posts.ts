@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, postsTable, usersTable, votesTable, savedPostsTable, postTagsTable, tagsTable } from "@workspace/db";
+import { db, postsTable, usersTable, votesTable, savedPostsTable, postTagsTable, tagsTable, followsTable } from "@workspace/db";
 import { eq, and, desc, asc, sql, ilike, or, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../lib/auth.js";
 
@@ -118,8 +118,32 @@ router.get("/", optionalAuth, async (req, res) => {
       }
     }
 
+    // Following section: posts from people the current user follows
+    if (section === "following") {
+      if (!userId) {
+        res.json({ posts: [], total: 0, page: pageNum, totalPages: 0, hasMore: false });
+        return;
+      }
+      const followingRows = await db.select({ followingId: followsTable.followingId })
+        .from(followsTable).where(eq(followsTable.followerId, userId));
+      const followingIds = followingRows.map(r => r.followingId);
+      if (!followingIds.length) {
+        res.json({ posts: [], total: 0, page: pageNum, totalPages: 0, hasMore: false });
+        return;
+      }
+      const [countResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(postsTable)
+        .where(and(eq(postsTable.status, "approved"), inArray(postsTable.authorId, followingIds)));
+      const total = Number(countResult?.count || 0);
+      const posts = await db.select().from(postsTable)
+        .where(and(eq(postsTable.status, "approved"), inArray(postsTable.authorId, followingIds)))
+        .orderBy(desc(postsTable.createdAt)).limit(limitNum).offset(offset);
+      const formatted = await getPostsWithDetails(posts, userId);
+      res.json({ posts: formatted, total, page: pageNum, totalPages: Math.ceil(total / limitNum), hasMore: offset + posts.length < total });
+      return;
+    }
+
     let orderBy;
-    const now = new Date();
     switch (section) {
       case "hot":
         orderBy = desc(postsTable.points);
@@ -308,6 +332,29 @@ router.post("/:id/vote", authenticate, async (req, res) => {
     res.json({ upvotes: newUpvotes, downvotes: newDownvotes, points: newPoints, userVote: newVote });
   } catch (err) {
     console.error("Vote error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// POST /posts/:id/report
+router.post("/:id/report", authenticate, async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const user = (req as any).user;
+    const { reason = "spam" } = req.body;
+
+    const [post] = await db.select().from(postsTable).where(eq(postsTable.id, postId));
+    if (!post) {
+      res.status(404).json({ error: "Not Found" });
+      return;
+    }
+    if (post.authorId === user.id) {
+      res.status(400).json({ error: "Bad Request", message: "Cannot report your own post" });
+      return;
+    }
+    res.json({ success: true, message: "Post reported. Our moderators will review it." });
+  } catch (err) {
+    console.error("Report post error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

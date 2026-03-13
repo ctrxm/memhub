@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, notificationsTable, usersTable } from "@workspace/db";
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import { eq, desc, sql, inArray, and } from "drizzle-orm";
 import { authenticate } from "../lib/auth.js";
 
 const router = Router();
@@ -23,7 +23,7 @@ router.get("/", authenticate, async (req, res) => {
 
     const [unreadResult] = await db.select({ count: sql<number>`count(*)` })
       .from(notificationsTable)
-      .where(eq(notificationsTable.userId, user.id));
+      .where(and(eq(notificationsTable.userId, user.id), eq(notificationsTable.isRead, false)));
     const unreadCount = Number(unreadResult?.count || 0);
 
     const fromUserIds = [...new Set(notifications.map(n => n.fromUserId))];
