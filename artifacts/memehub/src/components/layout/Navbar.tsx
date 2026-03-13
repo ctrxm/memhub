@@ -4,6 +4,7 @@ import { Button, Input, Avatar } from "@/components/ui/shared";
 import { Search, PlusSquare, Bell, User, LogOut, Settings, ShieldAlert, Zap } from "lucide-react";
 import { useState } from "react";
 import { useGetNotifications } from "@workspace/api-client-react";
+import { OvrHubLogoIcon } from "@/components/ui/OvrHubLogo";
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -29,9 +30,9 @@ export function Navbar() {
       <div className="container mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity">
-          <img src={`${import.meta.env.BASE_URL}images/logo-icon.png`} alt="MemeHub" className="w-8 h-8 rounded-lg" />
+          <OvrHubLogoIcon size={32} className="rounded-lg" />
           <span className="font-display text-2xl font-bold tracking-tight hidden sm:block text-foreground">
-            MEME<span className="text-primary">HUB</span>
+            OVR<span className="text-primary">HUB</span>
           </span>
         </Link>
 

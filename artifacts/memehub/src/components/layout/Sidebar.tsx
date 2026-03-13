@@ -62,7 +62,7 @@ export function Sidebar() {
       </div>
 
       <div className="mt-6 text-xs text-muted-foreground space-y-2 px-2">
-        <p>© 2025 MemeHub.</p>
+        <p>© 2025 OVRHUB.</p>
         <div className="flex gap-3">
           <a href="#" className="hover:text-primary transition-colors">Rules</a>
           <a href="#" className="hover:text-primary transition-colors">Privacy</a>

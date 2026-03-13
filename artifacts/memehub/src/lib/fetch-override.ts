@@ -3,7 +3,7 @@ const originalFetch = window.fetch;
 
 window.fetch = async (...args) => {
   const [resource, config] = args;
-  const token = localStorage.getItem('memehub_token');
+  const token = localStorage.getItem('ovrhub_token') || localStorage.getItem('memehub_token');
 
   if (token) {
     const existingHeaders = new Headers(config?.headers);

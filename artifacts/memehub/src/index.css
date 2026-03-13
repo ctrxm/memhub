@@ -1,9 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Bangers&display=swap');
 @import "tailwindcss";
 
 @theme inline {
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Oswald', sans-serif;
+  --font-meme: 'Bangers', cursive;
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -42,7 +43,6 @@
 }
 
 :root {
-  /* Default to Dark Mode as it fits the "meme/social" aesthetic better */
   --background: 240 10% 4%;
   --foreground: 0 0% 98%;
   
@@ -52,7 +52,7 @@
   --popover: 240 10% 7%;
   --popover-foreground: 0 0% 98%;
   
-  --primary: 25 100% 50%; /* Vibrant Orange */
+  --primary: 25 100% 50%;
   --primary-foreground: 0 0% 98%;
   
   --secondary: 240 5% 15%;
@@ -78,7 +78,7 @@
 }
 
 .light {
-  --background: 0 0% 98%;
+  --background: 0 0% 96%;
   --foreground: 240 10% 4%;
   
   --card: 0 0% 100%;
@@ -90,10 +90,10 @@
   --primary: 25 100% 50%;
   --primary-foreground: 0 0% 98%;
   
-  --secondary: 240 5% 96%;
+  --secondary: 240 5% 92%;
   --secondary-foreground: 240 10% 4%;
   
-  --muted: 240 5% 96%;
+  --muted: 240 5% 92%;
   --muted-foreground: 240 5% 45%;
   
   --accent: 25 100% 50%;
@@ -102,8 +102,8 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
   
-  --border: 240 6% 90%;
-  --input: 240 6% 90%;
+  --border: 240 6% 88%;
+  --input: 240 6% 88%;
   --ring: 25 100% 50%;
 }
 
@@ -114,11 +114,10 @@
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
   }
-  
-  /* Custom Scrollbar for sleek dark mode */
+
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -131,13 +130,33 @@
   }
 }
 
-/* Utilities for rich styling */
 @layer utilities {
   .glass-panel {
     @apply bg-background/80 backdrop-blur-xl border-b border-border/50 supports-[backdrop-filter]:bg-background/60;
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 hover:border-primary/30;
+    @apply transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5 hover:border-primary/30;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .font-meme {
+    font-family: 'Bangers', cursive;
+    letter-spacing: 0.05em;
+  }
+
+  .meme-card {
+    @apply bg-card border border-border/50 rounded-2xl overflow-hidden;
+  }
+
+  .bottom-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
