@@ -508,7 +508,7 @@ function AdminSettings() {
   });
 
   const [form, setForm] = useState({
-    siteName: "", siteDescription: "", allowRegistration: true, requireApproval: false, huggingFaceRepo: "", maintenanceMode: false
+    siteName: "", siteDescription: "", allowRegistration: true, requireApproval: false, huggingFaceRepo: "", maintenanceMode: false, smtpEnabled: false,
   });
 
   useEffect(() => {
@@ -519,6 +519,7 @@ function AdminSettings() {
       requireApproval: settings.requireApproval,
       huggingFaceRepo: settings.huggingFaceRepo,
       maintenanceMode: settings.maintenanceMode,
+      smtpEnabled: (settings as any).smtpEnabled ?? false,
     });
   }, [settings]);
 
@@ -562,9 +563,24 @@ function AdminSettings() {
           <input type="checkbox" className="w-5 h-5 accent-destructive" checked={form.maintenanceMode} onChange={e => setForm({...form, maintenanceMode: e.target.checked})} />
         </div>
 
+        <div className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${form.smtpEnabled ? "bg-primary/10 border-primary/40" : "bg-background border-border/50"}`}>
+          <div>
+            <p className="font-bold flex items-center gap-2">
+              Email OTP Verification
+              {form.smtpEnabled ? (
+                <span className="text-xs text-primary font-semibold uppercase tracking-wide">On</span>
+              ) : (
+                <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Off</span>
+              )}
+            </p>
+            <p className="text-sm text-muted-foreground">When enabled, new users must verify their email with a one-time code before they can log in.</p>
+          </div>
+          <input type="checkbox" className="w-5 h-5 accent-primary" checked={form.smtpEnabled} onChange={e => setForm({...form, smtpEnabled: e.target.checked})} />
+        </div>
+
         <Button 
           className="w-full mt-4" 
-          onClick={() => updateMutation.mutate({ data: { ...settings!, ...form, maxUploadSizeMb: settings?.maxUploadSizeMb ?? 10, allowedFileTypes: settings?.allowedFileTypes ?? [] }})}
+          onClick={() => updateMutation.mutate({ data: { ...settings!, ...form, maxUploadSizeMb: settings?.maxUploadSizeMb ?? 10, allowedFileTypes: settings?.allowedFileTypes ?? [], smtpEnabled: form.smtpEnabled } as any})}
           isLoading={updateMutation.isPending}
         >
           Save Changes

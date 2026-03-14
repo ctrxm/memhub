@@ -10,6 +10,7 @@ export const siteSettingsTable = pgTable("site_settings", {
   allowedFileTypes: text("allowed_file_types").notNull().default("jpg,jpeg,png,gif,webp,mp4"),
   huggingFaceRepo: text("hugging_face_repo").notNull().default(""),
   maintenanceMode: boolean("maintenance_mode").notNull().default(false),
+  smtpEnabled: boolean("smtp_enabled").notNull().default(false),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

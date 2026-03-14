@@ -277,6 +277,7 @@ router.get("/settings", async (_req, res) => {
       allowedFileTypes: settings.allowedFileTypes.split(","),
       huggingFaceRepo: settings.huggingFaceRepo,
       maintenanceMode: settings.maintenanceMode,
+      smtpEnabled: settings.smtpEnabled,
     });
   } catch (err) {
     console.error("Get settings error:", err);
@@ -287,7 +288,7 @@ router.get("/settings", async (_req, res) => {
 // PUT /admin/settings
 router.put("/settings", async (req, res) => {
   try {
-    const { siteName, siteDescription, allowRegistration, requireApproval, maxUploadSizeMb, allowedFileTypes, huggingFaceRepo, maintenanceMode } = req.body;
+    const { siteName, siteDescription, allowRegistration, requireApproval, maxUploadSizeMb, allowedFileTypes, huggingFaceRepo, maintenanceMode, smtpEnabled } = req.body;
 
     const updates: any = { updatedAt: new Date() };
     if (siteName !== undefined) updates.siteName = siteName;
@@ -298,6 +299,7 @@ router.put("/settings", async (req, res) => {
     if (allowedFileTypes !== undefined) updates.allowedFileTypes = Array.isArray(allowedFileTypes) ? allowedFileTypes.join(",") : allowedFileTypes;
     if (huggingFaceRepo !== undefined) updates.huggingFaceRepo = huggingFaceRepo;
     if (maintenanceMode !== undefined) updates.maintenanceMode = maintenanceMode;
+    if (smtpEnabled !== undefined) updates.smtpEnabled = smtpEnabled;
 
     let [settings] = await db.select({ id: siteSettingsTable.id }).from(siteSettingsTable).limit(1);
     
@@ -322,6 +324,7 @@ router.put("/settings", async (req, res) => {
       allowedFileTypes: updated.allowedFileTypes.split(","),
       huggingFaceRepo: updated.huggingFaceRepo,
       maintenanceMode: updated.maintenanceMode,
+      smtpEnabled: updated.smtpEnabled,
     });
   } catch (err) {
     console.error("Update settings error:", err);

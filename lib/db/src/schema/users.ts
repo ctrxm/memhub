@@ -16,6 +16,9 @@ export const usersTable = pgTable("users", {
   banReason: text("ban_reason"),
   totalPoints: integer("total_points").notNull().default(0),
   lastActiveAt: timestamp("last_active_at"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  verificationOtp: text("verification_otp"),
+  otpExpiry: timestamp("otp_expiry"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
