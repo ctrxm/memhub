@@ -19,11 +19,10 @@ async function getFollowersCount(userId: number): Promise<number> {
 
 async function hasVerifiedBadge(userId: number): Promise<boolean> {
   const rows = await db
-    .select({ isVerified: badgesTable.isVerified })
+    .select({ id: userBadgesTable.badgeId })
     .from(userBadgesTable)
-    .innerJoin(badgesTable, eq(userBadgesTable.badgeId, badgesTable.id))
     .where(eq(userBadgesTable.userId, userId));
-  return rows.some(r => r.isVerified);
+  return rows.length > 0;
 }
 
 async function checkEligibility(userId: number): Promise<{
