@@ -135,10 +135,10 @@ export function TipModal({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={e => { if (e.target === overlayRef.current) onClose(); }}
     >
-      <div className="w-full sm:max-w-[420px] sm:mx-4 bg-card border border-border/50 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-300">
+      <div className="w-full sm:max-w-[420px] sm:mx-4 bg-card border border-border/50 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-300 mb-[calc(env(safe-area-inset-bottom,0px)+4rem)] sm:mb-0">
 
         {/* Header */}
         <div className="relative px-5 pt-5 pb-4 border-b border-border/30">
