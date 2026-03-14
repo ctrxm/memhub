@@ -130,6 +130,11 @@
   }
 }
 
+@keyframes shrink {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
 @layer utilities {
   .glass-panel {
     @apply bg-background/80 backdrop-blur-xl border-b border-border/50 supports-[backdrop-filter]:bg-background/60;

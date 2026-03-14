@@ -4,7 +4,9 @@ import { Layout } from "@/components/layout/Layout";
 import { PostCard } from "@/components/post/PostCard";
 import { Button } from "@/components/ui/shared";
 import { useGetPosts, GetPostsSection } from "@workspace/api-client-react";
-import { Loader2, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
+import { BroadcastBanner } from "@/components/ui/BroadcastBanner";
+import { AdBanner } from "@/components/ui/AdBanner";
 
 export default function Home() {
   const [location] = useLocation();
@@ -58,9 +60,14 @@ export default function Home() {
         </div>
       ) : (
         <>
+          <BroadcastBanner />
+          <AdBanner position="feed_top" className="mb-4" />
           <div className="space-y-6">
-            {data?.posts?.map((post) => (
-              <PostCard key={post.id} post={post} />
+            {data?.posts?.map((post, idx) => (
+              <>
+                <PostCard key={post.id} post={post} />
+                {idx === 4 && <AdBanner key="ad-middle" position="between_posts" />}
+              </>
             ))}
           </div>
 

@@ -4,15 +4,30 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useGetAdminStats, useGetAdminPosts, useUpdatePostStatus, useGetAdminSettings, useUpdateAdminSettings } from "@workspace/api-client-react";
 import { Button, Input, Badge, Textarea } from "@/components/ui/shared";
-import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck, Hash, Zap } from "lucide-react";
+import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck, Hash, Zap, Megaphone, Tv2, ToggleLeft, ToggleRight, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
 import { UserBadge } from "@/components/ui/UserBadge";
+import { cn } from "@/lib/utils";
+
+type AdminTab = "dashboard" | "posts" | "users" | "badges" | "tags" | "settings" | "tips" | "broadcasts" | "ads";
+
+const ADMIN_TABS: { id: AdminTab; icon: React.ReactNode; label: string }[] = [
+  { id: "dashboard",   icon: <Activity className="w-4 h-4" />,    label: "Dashboard" },
+  { id: "posts",       icon: <ImageIcon className="w-4 h-4" />,   label: "Pending" },
+  { id: "users",       icon: <Users className="w-4 h-4" />,       label: "Users" },
+  { id: "badges",      icon: <Award className="w-4 h-4" />,       label: "Badges" },
+  { id: "tags",        icon: <Hash className="w-4 h-4" />,        label: "Tags" },
+  { id: "broadcasts",  icon: <Megaphone className="w-4 h-4" />,   label: "Broadcasts" },
+  { id: "ads",         icon: <Tv2 className="w-4 h-4" />,         label: "Ads" },
+  { id: "settings",    icon: <Settings className="w-4 h-4" />,    label: "Settings" },
+  { id: "tips",        icon: <Zap className="w-4 h-4" />,         label: "Tips" },
+];
 
 export default function Admin() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "badges" | "tags" | "settings" | "tips">("dashboard");
+  const [tab, setTab] = useState<AdminTab>("dashboard");
 
   if (user?.role !== 'admin') {
     return (
@@ -29,43 +44,62 @@ export default function Admin() {
 
   return (
     <Layout hideSidebar>
-      <div className="flex flex-col md:flex-row gap-8">
-        
-        {/* Admin Sidebar */}
-        <div className="w-full md:w-64 shrink-0 space-y-2">
-          <h2 className="font-display text-2xl font-bold mb-6 px-4">Admin Panel</h2>
-          <AdminTab active={tab === "dashboard"} icon={<Activity />} label="Dashboard" onClick={() => setTab("dashboard")} />
-          <AdminTab active={tab === "posts"} icon={<ImageIcon />} label="Pending Posts" onClick={() => setTab("posts")} />
-          <AdminTab active={tab === "users"} icon={<Users />} label="Users" onClick={() => setTab("users")} />
-          <AdminTab active={tab === "badges"} icon={<Award />} label="Badges" onClick={() => setTab("badges")} />
-          <AdminTab active={tab === "tags"} icon={<Hash />} label="Tags" onClick={() => setTab("tags")} />
-          <AdminTab active={tab === "settings"} icon={<Settings />} label="Site Settings" onClick={() => setTab("settings")} />
-          <AdminTab active={tab === "tips"} icon={<Zap />} label="Tip Applications" onClick={() => setTab("tips")} />
+      <div className="flex flex-col lg:flex-row gap-6">
+
+        {/* Mobile: horizontal scrollable tab bar */}
+        <div className="lg:hidden">
+          <h2 className="font-display text-xl font-bold mb-3">Admin Panel</h2>
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {ADMIN_TABS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all shrink-0",
+                  tab === t.id
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop: vertical sidebar */}
+        <div className="hidden lg:block w-56 shrink-0 space-y-1">
+          <h2 className="font-display text-2xl font-bold mb-5 px-3">Admin Panel</h2>
+          {ADMIN_TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all text-sm",
+                tab === t.id
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 bg-card border border-border/50 rounded-2xl p-6 shadow-sm min-h-[600px]">
-          {tab === "dashboard" && <AdminDashboard />}
-          {tab === "posts" && <AdminPosts />}
-          {tab === "users" && <AdminUsers />}
-          {tab === "badges" && <AdminBadges />}
-          {tab === "tags" && <AdminTags />}
-          {tab === "settings" && <AdminSettings />}
-          {tab === "tips" && <AdminTipApplications />}
+        <div className="flex-1 bg-card border border-border/50 rounded-2xl p-4 sm:p-6 shadow-sm min-h-[500px]">
+          {tab === "dashboard"  && <AdminDashboard />}
+          {tab === "posts"      && <AdminPosts />}
+          {tab === "users"      && <AdminUsers />}
+          {tab === "badges"     && <AdminBadges />}
+          {tab === "tags"       && <AdminTags />}
+          {tab === "broadcasts" && <AdminBroadcasts />}
+          {tab === "ads"        && <AdminAds />}
+          {tab === "settings"   && <AdminSettings />}
+          {tab === "tips"       && <AdminTipApplications />}
         </div>
       </div>
     </Layout>
-  );
-}
-
-function AdminTab({ active, icon, label, onClick }: { active: boolean, icon: React.ReactNode, label: string, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${active ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground'}`}
-    >
-      {icon} {label}
-    </button>
   );
 }
 
@@ -754,6 +788,275 @@ function AdminTipApplications() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Admin: Broadcasts
+// ──────────────────────────────────────────────
+function AdminBroadcasts() {
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const { toast } = useToast();
+  const token = localStorage.getItem("ovrhub_token") || localStorage.getItem("memehub_token");
+  const authHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ title: "", content: "", type: "info" });
+
+  const TYPE_COLORS: Record<string, string> = {
+    info:    "text-blue-400 bg-blue-500/10 border-blue-500/30",
+    warning: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30",
+    alert:   "text-red-400 bg-red-500/10 border-red-500/30",
+    promo:   "text-primary bg-primary/10 border-primary/30",
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/broadcasts/all`, { headers: authHeaders });
+      const d = await res.json();
+      setBroadcasts(d.broadcasts || []);
+    } catch { toast({ title: "Failed to load broadcasts", variant: "destructive" }); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!form.title.trim() || !form.content.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/broadcasts`, { method: "POST", headers: authHeaders, body: JSON.stringify(form) });
+      if (res.ok) { toast({ title: "Broadcast created!" }); setCreating(false); setForm({ title: "", content: "", type: "info" }); load(); }
+      else toast({ title: "Failed to create", variant: "destructive" });
+    } catch { toast({ title: "Error", variant: "destructive" }); }
+    setSaving(false);
+  };
+
+  const toggle = async (id: number) => {
+    await fetch(`${BASE}/api/broadcasts/${id}/toggle`, { method: "PATCH", headers: authHeaders });
+    load();
+  };
+
+  const del = async (id: number) => {
+    if (!confirm("Delete this broadcast?")) return;
+    await fetch(`${BASE}/api/broadcasts/${id}`, { method: "DELETE", headers: authHeaders });
+    load();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold flex items-center gap-2"><Megaphone className="w-5 h-5 text-primary" /> Broadcasts</h3>
+        <Button onClick={() => setCreating(v => !v)} className="gap-2 rounded-full" size="sm">
+          <Plus className="w-4 h-4" /> {creating ? "Cancel" : "New"}
+        </Button>
+      </div>
+
+      {creating && (
+        <div className="bg-background border border-border/50 rounded-xl p-5 mb-6 space-y-4">
+          <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">New Broadcast</h4>
+          <div>
+            <label className="text-xs font-bold mb-1 block">Type</label>
+            <div className="flex gap-2 flex-wrap">
+              {(["info", "warning", "alert", "promo"] as const).map(t => (
+                <button key={t} onClick={() => setForm(f => ({ ...f, type: t }))}
+                  className={cn("px-3 py-1.5 rounded-full text-xs font-bold border capitalize transition-all", form.type === t ? TYPE_COLORS[t] : "border-border text-muted-foreground hover:text-foreground")}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold mb-1 block">Title *</label>
+            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Scheduled maintenance on Sunday" />
+          </div>
+          <div>
+            <label className="text-xs font-bold mb-1 block">Content *</label>
+            <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Details of the announcement..." rows={3} />
+          </div>
+          <Button onClick={create} isLoading={saving} className="w-full">Send Broadcast</Button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-secondary animate-pulse" />)}</div>
+      ) : broadcasts.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Megaphone className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="font-bold">No broadcasts yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {broadcasts.map(b => (
+            <div key={b.id} className={cn("p-4 rounded-xl border border-border/50 flex items-start gap-3 bg-background transition-opacity", !b.isActive && "opacity-50")}>
+              <div className={cn("text-xs font-bold px-2 py-1 rounded-full border shrink-0 capitalize mt-0.5", TYPE_COLORS[b.type] || TYPE_COLORS.info)}>{b.type}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm">{b.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{b.content}</p>
+                <p className="text-xs text-muted-foreground/50 mt-1">{new Date(b.createdAt).toLocaleDateString()}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => toggle(b.id)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors" title={b.isActive ? "Deactivate" : "Activate"}>
+                  {b.isActive ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
+                </button>
+                <button onClick={() => del(b.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Admin: Ads
+// ──────────────────────────────────────────────
+function AdminAds() {
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const { toast } = useToast();
+  const token = localStorage.getItem("ovrhub_token") || localStorage.getItem("memehub_token");
+  const authHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+
+  const [ads, setAds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ title: "", content: "", imageUrl: "", linkUrl: "", position: "feed_middle" });
+
+  const POSITIONS = [
+    { value: "feed_top",      label: "Feed Top" },
+    { value: "feed_middle",   label: "Feed Middle" },
+    { value: "sidebar",       label: "Sidebar" },
+    { value: "between_posts", label: "Between Posts" },
+  ];
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/ads`, { headers: authHeaders });
+      const d = await res.json();
+      setAds(d.ads || []);
+    } catch { toast({ title: "Failed to load ads", variant: "destructive" }); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!form.title.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/ads`, { method: "POST", headers: authHeaders, body: JSON.stringify(form) });
+      if (res.ok) { toast({ title: "Ad created!" }); setCreating(false); setForm({ title: "", content: "", imageUrl: "", linkUrl: "", position: "feed_middle" }); load(); }
+      else toast({ title: "Failed to create", variant: "destructive" });
+    } catch { toast({ title: "Error", variant: "destructive" }); }
+    setSaving(false);
+  };
+
+  const toggle = async (id: number) => {
+    await fetch(`${BASE}/api/ads/${id}/toggle`, { method: "PATCH", headers: authHeaders });
+    load();
+  };
+
+  const del = async (id: number) => {
+    if (!confirm("Delete this ad?")) return;
+    await fetch(`${BASE}/api/ads/${id}`, { method: "DELETE", headers: authHeaders });
+    load();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold flex items-center gap-2"><Tv2 className="w-5 h-5 text-primary" /> Ad Management</h3>
+        <Button onClick={() => setCreating(v => !v)} className="gap-2 rounded-full" size="sm">
+          <Plus className="w-4 h-4" /> {creating ? "Cancel" : "New Ad"}
+        </Button>
+      </div>
+
+      {creating && (
+        <div className="bg-background border border-border/50 rounded-xl p-5 mb-6 space-y-4">
+          <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">New Advertisement</h4>
+          <div>
+            <label className="text-xs font-bold mb-2 block">Position</label>
+            <div className="flex gap-2 flex-wrap">
+              {POSITIONS.map(p => (
+                <button key={p.value} onClick={() => setForm(f => ({ ...f, position: p.value }))}
+                  className={cn("px-3 py-1.5 rounded-full text-xs font-bold border transition-all", form.position === p.value ? "bg-primary/10 text-primary border-primary/40" : "border-border text-muted-foreground hover:text-foreground")}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold mb-1 block">Title *</label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Ad title" />
+            </div>
+            <div>
+              <label className="text-xs font-bold mb-1 block">Subtitle / Description</label>
+              <Input value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Short description" />
+            </div>
+            <div>
+              <label className="text-xs font-bold mb-1 block">Image URL</label>
+              <Input value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div>
+              <label className="text-xs font-bold mb-1 block">Link URL</label>
+              <Input value={form.linkUrl} onChange={e => setForm(f => ({ ...f, linkUrl: e.target.value }))} placeholder="https://..." />
+            </div>
+          </div>
+          <Button onClick={create} isLoading={saving} className="w-full">Create Ad</Button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-secondary animate-pulse" />)}</div>
+      ) : ads.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Tv2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="font-bold">No ads yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {ads.map(ad => (
+            <div key={ad.id} className={cn("p-4 rounded-xl border border-border/50 flex items-start gap-3 bg-background", !ad.isActive && "opacity-50")}>
+              {ad.imageUrl && <img src={ad.imageUrl} alt="" className="w-14 h-10 object-cover rounded-lg bg-muted shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-sm">{ad.title}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary font-semibold text-muted-foreground capitalize">{ad.position.replace("_", " ")}</span>
+                </div>
+                {ad.content && <p className="text-xs text-muted-foreground mt-0.5 truncate">{ad.content}</p>}
+                <div className="flex gap-3 mt-1 text-xs text-muted-foreground/60">
+                  <span>👁 {ad.impressionCount} views</span>
+                  <span>🖱 {ad.clickCount} clicks</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {ad.linkUrl && (
+                  <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+                <button onClick={() => toggle(ad.id)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors" title={ad.isActive ? "Deactivate" : "Activate"}>
+                  {ad.isActive ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
+                </button>
+                <button onClick={() => del(ad.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

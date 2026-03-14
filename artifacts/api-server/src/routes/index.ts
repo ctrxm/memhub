@@ -11,6 +11,8 @@ import adminRouter from "./admin.js";
 import badgesRouter from "./badges.js";
 import communitiesRouter from "./communities.js";
 import tipsRouter from "./tips.js";
+import broadcastsRouter from "./broadcasts.js";
+import adsRouter from "./ads.js";
 import { db, postsTable, siteSettingsTable } from "@workspace/db";
 import { ilike, eq, and, sql } from "drizzle-orm";
 import { optionalAuth } from "../lib/auth.js";
@@ -41,6 +43,8 @@ router.use("/admin", adminRouter);
 router.use("/badges", badgesRouter);
 router.use("/communities", communitiesRouter);
 router.use("/tips", tipsRouter);
+router.use("/broadcasts", broadcastsRouter);
+router.use("/ads", adsRouter);
 
 // Public status endpoint — always reachable, even during maintenance
 router.get("/status", async (_req, res) => {

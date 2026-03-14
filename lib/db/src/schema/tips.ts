@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { usersTable } from "./users.js";
 import { postsTable } from "./posts.js";
 
@@ -49,3 +49,35 @@ export const withdrawalsTable = pgTable("withdrawals", {
 });
 
 export type Withdrawal = typeof withdrawalsTable.$inferSelect;
+
+export const broadcastTypeEnum = pgEnum("broadcast_type", ["info", "warning", "promo", "alert"]);
+
+export const broadcastsTable = pgTable("broadcasts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  type: broadcastTypeEnum("type").notNull().default("info"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: integer("created_by").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Broadcast = typeof broadcastsTable.$inferSelect;
+
+export const adPositionEnum = pgEnum("ad_position", ["feed_top", "feed_middle", "sidebar", "between_posts"]);
+
+export const adsTable = pgTable("ads", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content"),
+  imageUrl: text("image_url"),
+  linkUrl: text("link_url"),
+  position: adPositionEnum("position").notNull().default("feed_middle"),
+  isActive: boolean("is_active").notNull().default(true),
+  clickCount: integer("click_count").notNull().default(0),
+  impressionCount: integer("impression_count").notNull().default(0),
+  createdBy: integer("created_by").references(() => usersTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Ad = typeof adsTable.$inferSelect;
