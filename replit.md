@@ -29,7 +29,9 @@ OVRHUB (rebranded from MemeHub) adalah platform berbagi meme mirip 9GAG dengan f
 - **Notifications**: Upvotes, comments, follows, replies
 - **Tags**: Kategori meme yang bisa difilter
 - **Search**: Cari post berdasarkan judul
-- **Admin Panel**: Stats dashboard, users management, posts approval, Badges CRUD + award, Tags CRUD, site settings
+- **Admin Panel**: Stats dashboard, users management, posts approval, Badges CRUD + award, Tags CRUD, site settings, Tip Applications (approve/reject)
+- **Email OTP Verification**: 6-digit OTP via SMTP (nodemailer), configurable on/off via admin settings
+- **Crypto Tips (NOWPayments)**: Users can apply for tip feature (requires 1000+ followers + verified badge), send crypto tips on posts (BTC/ETH/USDT/etc), wallet dashboard for received/sent tips with status tracking, admin approves/rejects applications
 - **Communities**: Full 9GAG-style community system — create, join/leave, community feeds, community sidebar widget
 - **Navigation**: Hamburger menu drawer (left of logo) with full nav, communities, tags. Search/upload moved out of navbar
 - **Dark/Light Mode**: Toggle tema
@@ -41,8 +43,8 @@ OVRHUB (rebranded from MemeHub) adalah platform berbagi meme mirip 9GAG dengan f
 artifacts/
 ├── api-server/         # Express API server
 │   └── src/
-│       ├── lib/        # auth.ts, huggingface.ts
-│       └── routes/     # auth, posts, comments, users, tags, notifications, upload, admin
+│       ├── lib/        # auth.ts, huggingface.ts, email.ts, nowpayments.ts
+│       └── routes/     # auth, posts, comments, users, tags, notifications, upload, admin, tips
 ├── memehub/            # React + Vite frontend
 │   └── src/
 │       ├── components/ # Navbar, Sidebar, PostCard

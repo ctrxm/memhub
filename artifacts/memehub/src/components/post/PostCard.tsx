@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Post, useVotePost, useSavePost } from "@workspace/api-client-react";
 import { Avatar, Badge, Button } from "@/components/ui/shared";
-import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, Bookmark, MoreHorizontal, Trash2, Flag, Copy } from "lucide-react";
+import { ArrowBigUp, ArrowBigDown, MessageSquare, Share2, Bookmark, MoreHorizontal, Trash2, Flag, Copy, Zap } from "lucide-react";
 import { UserBadges } from "@/components/ui/UserBadge";
 import { formatTimeAgo, cn, formatNumber } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { OvrHubLogoIcon } from "@/components/ui/OvrHubLogo";
+import { TipModal } from "@/components/tip/TipModal";
 
 export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: boolean }) {
   const { isAuthenticated, user } = useAuth();
@@ -17,8 +18,19 @@ export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: bo
   const [, setLocation] = useLocation();
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showTipModal, setShowTipModal] = useState(false);
+  const [authorTipsEnabled, setAuthorTipsEnabled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  useEffect(() => {
+    const authorId = (post.author as any).id;
+    if (!authorId) return;
+    fetch(`${BASE}/api/tips/post/${post.id}/author`)
+      .then(r => r.json())
+      .then(d => setAuthorTipsEnabled(!!d.tipsEnabled))
+      .catch(() => {});
+  }, [post.id]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -220,6 +232,17 @@ export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: bo
           </Link>
         </div>
         <div className="flex items-center gap-1">
+          {authorTipsEnabled && !isOwner && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full gap-1.5 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 font-bold px-3"
+              onClick={() => isAuthenticated ? setShowTipModal(true) : toast({ title: "Login required", description: "Log in to send tips." })}
+            >
+              <Zap className="w-4 h-4" fill="currentColor" />
+              <span className="text-xs">Tip</span>
+            </Button>
+          )}
           <Button
             variant="ghost" size="icon"
             className={cn("rounded-full", post.isSaved ? "text-primary" : "text-muted-foreground hover:text-primary")}
@@ -233,6 +256,15 @@ export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: bo
           </Button>
         </div>
       </div>
+
+      {showTipModal && (
+        <TipModal
+          toUserId={String(post.author.id)}
+          toUsername={post.author.username}
+          postId={post.id}
+          onClose={() => setShowTipModal(false)}
+        />
+      )}
     </article>
   );
 }

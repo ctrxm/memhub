@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useGetAdminStats, useGetAdminPosts, useUpdatePostStatus, useGetAdminSettings, useUpdateAdminSettings } from "@workspace/api-client-react";
 import { Button, Input, Badge, Textarea } from "@/components/ui/shared";
-import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck, Hash } from "lucide-react";
+import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck, Hash, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
 import { UserBadge } from "@/components/ui/UserBadge";
@@ -12,7 +12,7 @@ import { UserBadge } from "@/components/ui/UserBadge";
 export default function Admin() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "badges" | "tags" | "settings">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "posts" | "users" | "badges" | "tags" | "settings" | "tips">("dashboard");
 
   if (user?.role !== 'admin') {
     return (
@@ -40,6 +40,7 @@ export default function Admin() {
           <AdminTab active={tab === "badges"} icon={<Award />} label="Badges" onClick={() => setTab("badges")} />
           <AdminTab active={tab === "tags"} icon={<Hash />} label="Tags" onClick={() => setTab("tags")} />
           <AdminTab active={tab === "settings"} icon={<Settings />} label="Site Settings" onClick={() => setTab("settings")} />
+          <AdminTab active={tab === "tips"} icon={<Zap />} label="Tip Applications" onClick={() => setTab("tips")} />
         </div>
 
         {/* Content Area */}
@@ -50,6 +51,7 @@ export default function Admin() {
           {tab === "badges" && <AdminBadges />}
           {tab === "tags" && <AdminTags />}
           {tab === "settings" && <AdminSettings />}
+          {tab === "tips" && <AdminTipApplications />}
         </div>
       </div>
     </Layout>
@@ -586,6 +588,174 @@ function AdminSettings() {
           Save Changes
         </Button>
       </div>
+    </div>
+  );
+}
+
+function AdminTipApplications() {
+  const { toast } = useToast();
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const token = localStorage.getItem("ovrhub_token") || localStorage.getItem("memehub_token");
+
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState<number | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ id: number } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+
+  const fetchApps = () => {
+    setLoading(true);
+    fetch(`${BASE}/api/tips/admin/applications`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setApplications(d.applications || []))
+      .catch(() => toast({ title: "Failed to load applications", variant: "destructive" }))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchApps(); }, []);
+
+  const handleApprove = async (id: number) => {
+    setWorking(id);
+    try {
+      const res = await fetch(`${BASE}/api/tips/admin/applications/${id}/approve`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast({ title: "Application approved", description: "Tip feature enabled for user." });
+      fetchApps();
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectModal) return;
+    setWorking(rejectModal.id);
+    try {
+      const res = await fetch(`${BASE}/api/tips/admin/applications/${rejectModal.id}/reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: rejectReason }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast({ title: "Application rejected" });
+      setRejectModal(null);
+      setRejectReason("");
+      fetchApps();
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const filtered = applications.filter(a => filter === "all" || a.status === filter);
+
+  const STATUS_BADGE: Record<string, string> = {
+    pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    approved: "bg-green-500/15 text-green-400 border-green-500/30",
+    rejected: "bg-destructive/15 text-destructive border-destructive/30",
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Zap className="w-5 h-5 text-yellow-400" /> Tip Applications
+        </h2>
+        <div className="flex gap-1 bg-secondary rounded-xl p-1">
+          {(["pending", "approved", "rejected", "all"] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors ${filter === f ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Zap className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>No {filter === "all" ? "" : filter} applications</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(app => (
+            <div key={app.id} className="p-4 rounded-xl border border-border/50 bg-secondary/20 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-bold text-sm">@{app.user?.username || `User #${app.userId}`}</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_BADGE[app.status] || ""}`}>
+                    {app.status}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  <span className={`font-semibold ${app.followers >= 1000 ? "text-green-400" : "text-destructive"}`}>
+                    {app.followers?.toLocaleString()} followers
+                  </span>
+                  <span className={`font-semibold ${app.hasCreatorBadge ? "text-green-400" : "text-destructive"}`}>
+                    {app.hasCreatorBadge ? "✓ Creator Badge" : "✗ No Creator Badge"}
+                  </span>
+                  <span className="text-muted-foreground">Applied {new Date(app.createdAt).toLocaleDateString()}</span>
+                </div>
+                {app.rejectionReason && (
+                  <p className="text-xs text-destructive mt-1">Rejected: {app.rejectionReason}</p>
+                )}
+              </div>
+
+              {app.status === "pending" && (
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-green-500/40 text-green-400 hover:bg-green-500/10 gap-1.5"
+                    onClick={() => handleApprove(app.id)}
+                    isLoading={working === app.id}
+                  >
+                    <Check className="w-4 h-4" /> Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-destructive/40 text-destructive hover:bg-destructive/10 gap-1.5"
+                    onClick={() => { setRejectModal({ id: app.id }); setRejectReason(""); }}
+                  >
+                    <X className="w-4 h-4" /> Reject
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-lg font-bold mb-2">Reject Application</h3>
+            <p className="text-sm text-muted-foreground mb-4">Optionally provide a reason for rejection.</p>
+            <Textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Reason (optional)"
+              className="mb-4"
+              rows={3}
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setRejectModal(null)}>Cancel</Button>
+              <Button className="flex-1 bg-destructive hover:bg-destructive/90" onClick={handleReject} isLoading={!!working}>
+                Reject
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

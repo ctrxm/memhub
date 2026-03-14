@@ -19,6 +19,7 @@ export const usersTable = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   verificationOtp: text("verification_otp"),
   otpExpiry: timestamp("otp_expiry"),
+  tipsEnabled: boolean("tips_enabled").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

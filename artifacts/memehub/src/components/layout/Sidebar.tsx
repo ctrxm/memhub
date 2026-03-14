@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Hash, TrendingUp, Flame, Clock, Trophy, Users, PlusCircle, Bell, Globe } from "lucide-react";
+import { Hash, TrendingUp, Flame, Clock, Trophy, Users, PlusCircle, Bell, Globe, Wallet, Zap } from "lucide-react";
 import { Badge, Button } from "@/components/ui/shared";
 import { useGetTags } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -47,6 +47,12 @@ export function Sidebar() {
         )}
         {isAuthenticated && (
           <NavLink active={location === "/notifications"} href="/notifications" icon={<Bell className="w-5 h-5 text-orange-400" />} label="Notifications" />
+        )}
+        {isAuthenticated && (
+          <NavLink active={location === "/wallet"} href="/wallet" icon={<Wallet className="w-5 h-5 text-green-400" />} label="Wallet" />
+        )}
+        {isAuthenticated && (
+          <NavLink active={location === "/tip-apply"} href="/tip-apply" icon={<Zap className="w-5 h-5 text-yellow-400" />} label="Enable Tips" />
         )}
       </div>
 
