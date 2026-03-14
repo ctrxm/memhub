@@ -74,13 +74,19 @@ lib/
 
 Set `HUGGINGFACE_TOKEN` and `HUGGINGFACE_REPO` in environment secrets. Images will be uploaded to the dataset repo. Without these, images are served from local `/uploads/` directory.
 
-## Cloudflare Pages Deployment
+## Replit Development Setup
 
-For Cloudflare Pages:
-1. Build frontend: `pnpm --filter @workspace/memehub run build`
-2. Deploy `artifacts/memehub/dist/` to Cloudflare Pages
-3. Set up a separate backend (e.g., Cloudflare Workers or VPS) for `/api` routes
-4. Update API base URL in frontend config
+Two workflows run concurrently:
+- **"Start application"**: React + Vite frontend on port 5000 (`PORT=5000 pnpm --filter @workspace/memehub run dev`)
+- **"API Server"**: Express backend on port 3000 (`PORT=3000 pnpm --filter @workspace/api-server run dev`)
+
+The Vite dev server proxies `/api` and `/uploads` requests to the backend at `localhost:3000`, so the frontend uses relative URLs (`/api/...`) without needing to know the backend port.
+
+Before starting the API server, the workspace library packages must be built:
+```
+pnpm --filter @workspace/db build
+pnpm --filter @workspace/api-zod build
+```
 
 ## API Routes
 
