@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, tipApplicationsTable, tipsTable, userBadgesTable, badgesTable, followsTable, postsTable } from "@workspace/db";
+import { db, usersTable, tipApplicationsTable, tipsTable, userBadgesTable, badgesTable, followsTable, postsTable, withdrawalsTable } from "@workspace/db";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../lib/auth.js";
 import * as np from "../lib/nowpayments.js";
@@ -391,6 +391,80 @@ router.get("/post/:postId/author", optionalAuth, async (req, res) => {
       .from(usersTable).where(eq(usersTable.id, post.authorId)).limit(1);
 
     res.json({ tipsEnabled: author?.tipsEnabled ?? false, authorId: post.authorId, username: author?.username });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// ─── Withdraw Routes ──────────────────────────────────────────────────────────
+
+// POST /tips/withdraw — request a withdrawal
+router.post("/withdraw", authenticate, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    if (!(req as any).user.tipsEnabled) {
+      res.status(403).json({ error: "Forbidden", message: "Tips not enabled for your account." });
+      return;
+    }
+
+    const { address, currency, amountUsd } = req.body;
+    if (!address || !currency || !amountUsd) {
+      res.status(400).json({ error: "Bad Request", message: "address, currency, and amountUsd are required." });
+      return;
+    }
+
+    const amount = parseFloat(amountUsd);
+    if (isNaN(amount) || amount <= 0) {
+      res.status(400).json({ error: "Bad Request", message: "Invalid amount." });
+      return;
+    }
+
+    // Check if they have sufficient finished tips balance
+    const received = await db.select({ amt: tipsTable.amountUsd })
+      .from(tipsTable)
+      .where(and(eq(tipsTable.toUserId, userId), eq(tipsTable.status, "finished")));
+    const totalReceived = received.reduce((s, r) => s + parseFloat(r.amt), 0);
+
+    const pendingWithdrawals = await db.select({ amt: withdrawalsTable.amountUsd })
+      .from(withdrawalsTable)
+      .where(and(eq(withdrawalsTable.userId, userId), inArray(withdrawalsTable.status, ["pending", "processing"])));
+    const totalPendingWithdraw = pendingWithdrawals.reduce((s, w) => s + parseFloat(w.amt), 0);
+
+    const previousWithdrawals = await db.select({ amt: withdrawalsTable.amountUsd })
+      .from(withdrawalsTable)
+      .where(and(eq(withdrawalsTable.userId, userId), eq(withdrawalsTable.status, "completed")));
+    const totalWithdrawn = previousWithdrawals.reduce((s, w) => s + parseFloat(w.amt), 0);
+
+    const available = totalReceived - totalWithdrawn - totalPendingWithdraw;
+    if (amount > available) {
+      res.status(400).json({ error: "Insufficient Balance", message: `Available balance is $${available.toFixed(2)} USD.` });
+      return;
+    }
+
+    const [withdrawal] = await db.insert(withdrawalsTable).values({
+      userId,
+      address,
+      currency: currency.toLowerCase(),
+      amountUsd: amount.toFixed(2),
+    }).returning();
+
+    res.status(201).json({ message: "Withdrawal request submitted. Admin will process it shortly.", withdrawal });
+  } catch (err) {
+    console.error("Withdraw error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// GET /tips/withdraw/history — get own withdrawal history
+router.get("/withdraw/history", authenticate, async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    const history = await db.select()
+      .from(withdrawalsTable)
+      .where(eq(withdrawalsTable.userId, userId))
+      .orderBy(desc(withdrawalsTable.createdAt))
+      .limit(50);
+    res.json({ withdrawals: history });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });
   }

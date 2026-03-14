@@ -32,3 +32,20 @@ export const tipsTable = pgTable("tips", {
 
 export type TipApplication = typeof tipApplicationsTable.$inferSelect;
 export type Tip = typeof tipsTable.$inferSelect;
+
+export const withdrawalStatusEnum = pgEnum("withdrawal_status", ["pending", "processing", "completed", "rejected"]);
+
+export const withdrawalsTable = pgTable("withdrawals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  address: text("address").notNull(),
+  currency: text("currency").notNull(),
+  amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+  status: withdrawalStatusEnum("status").notNull().default("pending"),
+  txHash: text("tx_hash"),
+  note: text("note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type Withdrawal = typeof withdrawalsTable.$inferSelect;

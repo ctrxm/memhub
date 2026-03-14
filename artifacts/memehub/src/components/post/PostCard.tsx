@@ -232,12 +232,16 @@ export function PostCard({ post, isDetail = false }: { post: Post, isDetail?: bo
           </Link>
         </div>
         <div className="flex items-center gap-1">
-          {authorTipsEnabled && !isOwner && (
+          {!isOwner && (
             <Button
               variant="ghost"
               size="sm"
               className="rounded-full gap-1.5 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 font-bold px-3"
-              onClick={() => isAuthenticated ? setShowTipModal(true) : toast({ title: "Login required", description: "Log in to send tips." })}
+              onClick={() => {
+                if (!isAuthenticated) return toast({ title: "Login required", description: "Log in to send tips." });
+                if (!authorTipsEnabled) return toast({ title: "Tips not available", description: "This creator hasn't enabled the tip feature yet." });
+                setShowTipModal(true);
+              }}
             >
               <Zap className="w-4 h-4" fill="currentColor" />
               <span className="text-xs">Tip</span>
