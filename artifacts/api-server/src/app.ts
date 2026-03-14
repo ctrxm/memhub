@@ -13,12 +13,21 @@ export { invalidateMaintenanceCache };
 
 const app: Express = express();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const allowedOriginsList = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
-  : true;
+  : null;
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Always allow same-origin / non-browser requests (no Origin header)
+    if (!origin) return callback(null, true);
+    // If no whitelist configured, allow all origins
+    if (!allowedOriginsList) return callback(null, true);
+    // Otherwise check whitelist
+    if (allowedOriginsList.includes(origin)) return callback(null, true);
+    // Rejected — don't throw, just return false so CORS headers are omitted
+    callback(null, false);
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: "50mb" }));
