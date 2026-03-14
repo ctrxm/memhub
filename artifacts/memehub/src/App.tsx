@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import "@/lib/fetch-override";
 
 import Home from "@/pages/Home";
+import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Profile from "@/pages/Profile";
@@ -35,10 +36,16 @@ const queryClient = new QueryClient({
   },
 });
 
+function HomeRoute() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return null;
+  return isAuthenticated ? <Home /> : <Landing />;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={HomeRoute} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/post/:id" component={PostDetail} />
