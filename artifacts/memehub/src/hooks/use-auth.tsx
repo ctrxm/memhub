@@ -4,6 +4,7 @@ import { useGetMe, UserProfile } from "@workspace/api-client-react";
 
 interface AuthContextType {
   user: UserProfile | null;
+  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (token: string, user?: UserProfile) => void;
@@ -88,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user: activeUser || null,
+        token,
         isLoading: !!token && isLoading && !cachedUser,
         isAuthenticated: !!activeUser,
         login: handleLogin,
