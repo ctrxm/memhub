@@ -62,15 +62,21 @@ router.post("/image", authenticate, (req, res, next) => {
 
     try {
       url = await uploadToHuggingFace(localPath, filename, req.file.mimetype);
-      storage = "huggingface";
 
-      // Delete local temp file after successful HF upload
-      unlink(localPath, (err) => {
-        if (err) console.warn("[Upload] Could not delete local temp file:", err.message);
-      });
+      if (url.startsWith("https://")) {
+        // Only delete the local file when it was actually uploaded to HuggingFace
+        storage = "huggingface";
+        unlink(localPath, (err) => {
+          if (err) console.warn("[Upload] Could not delete local temp file:", err.message);
+        });
+      } else {
+        // uploadToHuggingFace returned a local fallback URL (token not configured)
+        storage = "local";
+      }
     } catch (hfErr) {
       console.error("[Upload] HF upload failed, keeping local file as fallback:", hfErr);
       url = `/api/uploads/${filename}`;
+      storage = "local";
     }
 
     res.json({ url, filename, storage });
