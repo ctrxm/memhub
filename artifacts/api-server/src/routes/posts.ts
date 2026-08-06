@@ -6,12 +6,21 @@ import { getUserBadges } from "./badges.js";
 
 const router = Router();
 
+/** Rewrite a direct HuggingFace dataset URL to the backend proxy path so browsers don't need HF auth */
+function rewriteHfUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const hfPattern = /^https?:\/\/huggingface\.co\/datasets\/[^/]+\/[^/]+\/resolve\/[^/]+\/(.+)$/;
+  const match = url.match(hfPattern);
+  if (match) return `/api/hf-proxy/${match[1]}`;
+  return url;
+}
+
 function formatPost(post: any, author: any, tags: any[], userVote: string | null, isSaved: boolean, community?: any) {
   return {
     id: String(post.id),
     title: post.title,
-    imageUrl: post.imageUrl,
-    gifUrl: post.gifUrl || null,
+    imageUrl: rewriteHfUrl(post.imageUrl) ?? post.imageUrl,
+    gifUrl: rewriteHfUrl(post.gifUrl),
     type: post.type,
     upvotes: post.upvotes,
     downvotes: post.downvotes,

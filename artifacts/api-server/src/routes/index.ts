@@ -30,6 +30,46 @@ const uploadsDir =
 if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
 router.use("/uploads", express.static(uploadsDir));
 
+// HuggingFace image proxy — fetches images from private/gated HF datasets using the server token
+// Stored image URLs use /api/hf-proxy/:filename so browsers never need to authenticate with HF directly
+router.get("/hf-proxy/:filename", async (req, res) => {
+  const { filename } = req.params;
+  const token = process.env.HUGGINGFACE_TOKEN;
+  const repo = process.env.HUGGINGFACE_REPO;
+
+  if (!token || !repo) {
+    res.status(503).json({ error: "HuggingFace not configured" });
+    return;
+  }
+
+  const hfUrl = `https://huggingface.co/datasets/${repo}/resolve/main/${encodeURIComponent(filename)}`;
+
+  try {
+    const hfRes = await fetch(hfUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+      redirect: "follow",
+    });
+
+    if (!hfRes.ok) {
+      res.status(hfRes.status).json({ error: "Failed to fetch image from HuggingFace" });
+      return;
+    }
+
+    const contentType = hfRes.headers.get("content-type") || "image/jpeg";
+    const contentLength = hfRes.headers.get("content-length");
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    if (contentLength) res.setHeader("Content-Length", contentLength);
+
+    const arrayBuffer = await hfRes.arrayBuffer();
+    res.end(Buffer.from(arrayBuffer));
+  } catch (err) {
+    console.error("[HF Proxy] Error:", err);
+    res.status(500).json({ error: "Proxy error" });
+  }
+});
+
 router.use(healthRouter);
 router.use("/auth", authRouter);
 router.use("/posts", postsRouter);

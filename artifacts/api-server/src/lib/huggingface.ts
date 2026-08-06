@@ -45,18 +45,20 @@ export async function uploadToHuggingFace(
     ],
   });
 
-  const cdnUrl = `https://huggingface.co/datasets/${repo}/resolve/main/${filename}`;
-  console.log(`[HuggingFace] Upload success! URL: ${cdnUrl}`);
-  return cdnUrl;
+  // Return a proxy URL so the browser doesn't need to authenticate with HuggingFace directly
+  const proxyUrl = `/api/hf-proxy/${filename}`;
+  console.log(`[HuggingFace] Upload success! Proxy URL: ${proxyUrl}`);
+  return proxyUrl;
 }
 
 /**
- * Get the public CDN URL for a file in the HF dataset repo.
+ * Get the proxy URL for a file in the HF dataset repo.
+ * Uses the server-side proxy so browsers don't need to authenticate with HF directly.
  */
 export function getHuggingFaceFileUrl(filename: string): string {
   const { repo } = getConfig();
   if (!repo) return `/api/uploads/${filename}`;
-  return `https://huggingface.co/datasets/${repo}/resolve/main/${filename}`;
+  return `/api/hf-proxy/${filename}`;
 }
 
 /**
