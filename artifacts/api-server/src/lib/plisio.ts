@@ -15,10 +15,10 @@ export function isConfigured(): boolean {
   return !!getSecretKey();
 }
 
-/** USDT BEP20 and BNB are the only supported currencies */
+/** Plisio-supported currencies (USDT TRC20 + BNB) */
 export const SUPPORTED_CURRENCIES = [
-  { id: "USDTBSC", label: "USDT (BEP20)", icon: "₮", network: "BSC" },
-  { id: "BNB",     label: "BNB",          icon: "⬡", network: "BSC" },
+  { id: "USDTTRC20", label: "USDT (TRC20)", icon: "₮", network: "TRON" },
+  { id: "BNB",       label: "BNB",          icon: "⬡", network: "BSC" },
 ];
 
 async function plisioGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {

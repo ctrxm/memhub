@@ -50,7 +50,7 @@ router.get("/unlock-status", authenticate, async (req, res) => {
     res.json({ unlocked, unlockFeeUsd: fee, pendingPayment: pending || null });
   } catch (err) {
     console.error("unlock-status error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -65,8 +65,8 @@ router.post("/unlock", authenticate, async (req, res) => {
     const userId = (req as any).user.id;
     const { currency } = req.body;
 
-    if (!["USDTBSC", "BNB"].includes(currency)) {
-      res.status(400).json({ error: "Bad Request", message: "Currency must be USDTBSC or BNB" });
+    if (!["USDTTRC20", "BNB"].includes(currency)) {
+      res.status(400).json({ error: "Bad Request", message: "Currency must be USDTTRC20 or BNB" });
       return;
     }
 
@@ -81,7 +81,7 @@ router.post("/unlock", authenticate, async (req, res) => {
     const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
     const invoice = await plisio.createInvoice({
-      currency: currency as "USDTBSC" | "BNB",
+      currency: currency as "USDTTRC20" | "BNB",
       amountUsd: fee,
       orderId,
       orderName: "Task Access Unlock",
@@ -153,7 +153,7 @@ router.get("/unlock-payment/:txnId", authenticate, async (req, res) => {
     res.json({ status: payment.status, invoiceUrl: payment.invoiceUrl });
   } catch (err) {
     console.error("unlock-payment poll error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -189,7 +189,7 @@ router.post("/webhook", async (req, res) => {
     res.status(200).json({ ok: true });
   } catch (err) {
     console.error("[Tasks webhook] Error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -233,7 +233,7 @@ router.get("/", optionalAuth, async (req, res) => {
     });
   } catch (err) {
     console.error("tasks list error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -291,7 +291,7 @@ router.post("/:id/submit", authenticate, async (req, res) => {
     res.status(201).json({ message: "Submission received! Admin will review it shortly.", completion });
   } catch (err) {
     console.error("submit task error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -336,7 +336,7 @@ router.get("/my-submissions", authenticate, async (req, res) => {
     });
   } catch (err) {
     console.error("my-submissions error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
   }
 });
 

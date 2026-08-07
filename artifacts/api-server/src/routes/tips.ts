@@ -144,8 +144,8 @@ router.post("/create", authenticate, async (req, res) => {
       res.status(400).json({ error: "Bad Request", message: "toUserId, amountUsd, and cryptoCurrency are required." });
       return;
     }
-    if (!["USDTBSC", "BNB"].includes(cryptoCurrency)) {
-      res.status(400).json({ error: "Bad Request", message: "Only USDTBSC and BNB are supported." });
+    if (!["USDTTRC20", "BNB"].includes(cryptoCurrency)) {
+      res.status(400).json({ error: "Bad Request", message: "Only USDTTRC20 and BNB are supported." });
       return;
     }
     if (String(fromUserId) === String(toUserId)) {
@@ -172,7 +172,7 @@ router.post("/create", authenticate, async (req, res) => {
     const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
     const invoice = await plisio.createInvoice({
-      currency: cryptoCurrency as "USDTBSC" | "BNB",
+      currency: cryptoCurrency as "USDTTRC20" | "BNB",
       amountUsd: amount,
       orderId,
       orderName: description,
@@ -343,8 +343,8 @@ router.post("/withdraw/request", authenticate, async (req, res) => {
       res.status(400).json({ error: "Bad Request", message: "address, currency, amountUsd required." });
       return;
     }
-    if (!["USDTBSC", "BNB"].includes(currency)) {
-      res.status(400).json({ error: "Bad Request", message: "Only USDTBSC and BNB withdrawals are supported." });
+    if (!["USDTTRC20", "BNB"].includes(currency)) {
+      res.status(400).json({ error: "Bad Request", message: "Only USDTTRC20 and BNB withdrawals are supported." });
       return;
     }
     const [w] = await db.insert(withdrawalsTable).values({
