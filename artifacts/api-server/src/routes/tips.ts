@@ -104,6 +104,26 @@ router.get("/my-application", authenticate, async (req, res) => {
   }
 });
 
+// GET /tips/post/:postId/author — check if post author has tips enabled (used by PostCard)
+router.get("/post/:postId/author", async (req, res) => {
+  try {
+    const postId = parseInt(req.params.postId);
+    if (isNaN(postId)) { res.status(400).json({ error: "Bad Request" }); return; }
+
+    const [post] = await db.select({ authorId: postsTable.authorId })
+      .from(postsTable).where(eq(postsTable.id, postId)).limit(1);
+    if (!post) { res.status(404).json({ tipsEnabled: false }); return; }
+
+    const [author] = await db.select({ id: usersTable.id, tipsEnabled: usersTable.tipsEnabled, username: usersTable.username })
+      .from(usersTable).where(eq(usersTable.id, post.authorId)).limit(1);
+
+    res.json({ tipsEnabled: author?.tipsEnabled ?? false, authorId: author?.id, username: author?.username });
+  } catch (err) {
+    console.error("tip author check error:", err);
+    res.status(500).json({ tipsEnabled: false });
+  }
+});
+
 // GET /tips/currencies — only USDT BEP20 and BNB via Plisio
 router.get("/currencies", async (_req, res) => {
   res.json({ currencies: plisio.SUPPORTED_CURRENCIES });

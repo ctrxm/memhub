@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, TrendingUp, Clock, Trophy, Users, Hash, Bell, Settings, ShieldAlert, LogOut, User, PlusCircle, X, Globe, Wallet, Zap } from "lucide-react";
+import { Flame, TrendingUp, Clock, Trophy, Users, Hash, Bell, Settings, ShieldAlert, LogOut, User, PlusCircle, X, Globe, Wallet, Zap, Briefcase } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useGetTags } from "@workspace/api-client-react";
 import { Avatar, Badge } from "@/components/ui/shared";
@@ -91,6 +91,7 @@ export function MenuDrawer({ open, onClose }: MenuDrawerProps) {
                   <div className="space-y-0.5 mb-4">
                     <DrawerLink active={location === "/notifications"} icon={<Bell className="w-5 h-5 text-orange-400" />} label="Notifications" onClick={() => navTo("/notifications")} />
                     <DrawerLink active={location === "/wallet"} icon={<Wallet className="w-5 h-5 text-green-400" />} label="Wallet" onClick={() => navTo("/wallet")} />
+                    <DrawerLink active={location === "/tasks"} icon={<Briefcase className="w-5 h-5 text-primary" />} label="Tasks" onClick={() => navTo("/tasks")} />
                     <DrawerLink active={location === "/tip-apply"} icon={<Zap className="w-5 h-5 text-yellow-400" />} label="Enable Tips" onClick={() => navTo("/tip-apply")} />
                     <DrawerLink active={location === "/settings"} icon={<Settings className="w-5 h-5" />} label="Settings" onClick={() => navTo("/settings")} />
                     {user?.role === "admin" && (

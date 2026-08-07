@@ -1099,6 +1099,8 @@ function AdminAds() {
 function AdminTasks() {
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
   const { toast } = useToast();
+  const { token } = useAuth();
+  const authHeaders = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const [tasks, setTasks] = useState<any[]>([]);
   const [completions, setCompletions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1114,8 +1116,8 @@ function AdminTasks() {
   const fetchAll = async () => {
     try {
       const [tRes, cRes] = await Promise.all([
-        fetch(`${BASE}/api/admin/tasks`),
-        fetch(`${BASE}/api/admin/task-completions?status=${submissionFilter}`),
+        fetch(`${BASE}/api/admin/tasks`, { headers: authHeaders }),
+        fetch(`${BASE}/api/admin/task-completions?status=${submissionFilter}`, { headers: authHeaders }),
       ]);
       const [tData, cData] = await Promise.all([tRes.json(), cRes.json()]);
       setTasks(tData.tasks || []);
@@ -1134,7 +1136,7 @@ function AdminTasks() {
     try {
       const res = await fetch(`${BASE}/api/admin/tasks`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify(form),
       });
       if (res.ok) { toast({ title: "Task created!" }); setShowCreate(false); setForm({ title: "", description: "", instructions: "", rewardUsd: "", maxCompletions: "100" }); fetchAll(); }
@@ -1145,19 +1147,19 @@ function AdminTasks() {
 
   const toggleStatus = async (task: any) => {
     const newStatus = task.status === "active" ? "paused" : "active";
-    await fetch(`${BASE}/api/admin/tasks/${task.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) });
+    await fetch(`${BASE}/api/admin/tasks/${task.id}`, { method: "PUT", headers: authHeaders, body: JSON.stringify({ status: newStatus }) });
     fetchAll();
   };
 
   const deleteTask = async (id: number) => {
     if (!confirm("Delete this task? All submissions will also be deleted.")) return;
-    await fetch(`${BASE}/api/admin/tasks/${id}`, { method: "DELETE" });
+    await fetch(`${BASE}/api/admin/tasks/${id}`, { method: "DELETE", headers: authHeaders });
     toast({ title: "Task deleted" }); fetchAll();
   };
 
   const approveCompletion = async (id: number) => {
     setWorking(id);
-    const res = await fetch(`${BASE}/api/admin/task-completions/${id}/approve`, { method: "PUT" });
+    const res = await fetch(`${BASE}/api/admin/task-completions/${id}/approve`, { method: "PUT", headers: authHeaders });
     if (res.ok) toast({ title: "Approved! Reward credited." }); else toast({ title: "Error", variant: "destructive" });
     setWorking(null); fetchAll();
   };
@@ -1166,7 +1168,7 @@ function AdminTasks() {
     if (!rejectModal) return;
     setWorking(rejectModal.id);
     await fetch(`${BASE}/api/admin/task-completions/${rejectModal.id}/reject`, {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: rejectReason }),
+      method: "PUT", headers: authHeaders, body: JSON.stringify({ reason: rejectReason }),
     });
     toast({ title: "Rejected" }); setRejectModal(null); setWorking(null); fetchAll();
   };
@@ -1315,6 +1317,8 @@ function AdminTasks() {
 function AdminPayments() {
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
   const { toast } = useToast();
+  const { token } = useAuth();
+  const authHeaders = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending");
@@ -1324,7 +1328,7 @@ function AdminPayments() {
 
   const fetchWithdrawals = async () => {
     try {
-      const res = await fetch(`${BASE}/api/admin/withdrawals?status=${filter}`);
+      const res = await fetch(`${BASE}/api/admin/withdrawals?status=${filter}`, { headers: authHeaders });
       const data = await res.json();
       setWithdrawals(data.withdrawals || []);
     } catch {}
@@ -1337,7 +1341,7 @@ function AdminPayments() {
     setWorking(id);
     await fetch(`${BASE}/api/admin/withdrawals/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders,
       body: JSON.stringify({ status, txHash: hash }),
     });
     toast({ title: `Withdrawal ${status}` });
