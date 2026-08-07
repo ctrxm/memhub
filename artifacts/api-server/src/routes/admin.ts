@@ -44,7 +44,7 @@ router.get("/stats", async (_req, res) => {
     });
   } catch (err) {
     console.error("Admin stats error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -86,7 +86,7 @@ router.get("/users", async (req, res) => {
     res.json({ users: formatted, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     console.error("Admin users error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -103,7 +103,7 @@ router.post("/users/:id/ban", async (req, res) => {
     res.json({ success: true, message: `User ${isBanned ? "banned" : "unbanned"}` });
   } catch (err) {
     console.error("Ban user error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -122,7 +122,7 @@ router.put("/users/:id/role", async (req, res) => {
     res.json({ success: true, message: "Role updated" });
   } catch (err) {
     console.error("Update role error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -192,7 +192,7 @@ router.get("/posts", async (req, res) => {
     res.json({ posts: formatted, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     console.error("Admin posts error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -211,7 +211,7 @@ router.put("/posts/:id/status", async (req, res) => {
     res.json({ success: true, message: "Status updated" });
   } catch (err) {
     console.error("Update post status error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -255,7 +255,7 @@ router.get("/comments", async (req, res) => {
     res.json({ comments: formatted, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     console.error("Admin comments error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -283,7 +283,7 @@ router.get("/settings", async (_req, res) => {
     });
   } catch (err) {
     console.error("Get settings error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -334,7 +334,7 @@ router.put("/settings", async (req, res) => {
     });
   } catch (err) {
     console.error("Update settings error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -346,7 +346,7 @@ router.get("/tasks", async (_req, res) => {
     const tasks = await db.select().from(tasksTable).orderBy(desc(tasksTable.createdAt));
     res.json({ tasks });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -366,7 +366,7 @@ router.post("/tasks", async (req, res) => {
     }).returning();
     res.status(201).json({ task });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -386,7 +386,7 @@ router.put("/tasks/:id", async (req, res) => {
     if (!task) { res.status(404).json({ error: "Not Found" }); return; }
     res.json({ task });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -398,7 +398,7 @@ router.delete("/tasks/:id", async (req, res) => {
     await db.delete(tasksTable).where(eq(tasksTable.id, taskId));
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -431,7 +431,7 @@ router.get("/task-completions", async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -449,7 +449,7 @@ router.put("/task-completions/:id/approve", async (req, res) => {
       .where(eq(tasksTable.id, completion.taskId));
     res.json({ completion });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -464,7 +464,7 @@ router.put("/task-completions/:id/reject", async (req, res) => {
     if (!completion) { res.status(404).json({ error: "Not Found" }); return; }
     res.json({ completion });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -483,7 +483,7 @@ router.get("/withdrawals", async (req, res) => {
     const userMap = new Map(users.map(u => [u.id, u]));
     res.json({ withdrawals: list.map(w => ({ ...w, user: userMap.get(w.userId) || null })) });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -500,7 +500,7 @@ router.put("/withdrawals/:id", async (req, res) => {
     if (!w) { res.status(404).json({ error: "Not Found" }); return; }
     res.json({ withdrawal: w });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -517,7 +517,7 @@ router.post("/tags", async (req, res) => {
     res.status(201).json({ id: String(tag.id), name: tag.name, slug: tag.slug, postsCount: 0, color: tag.color || null });
   } catch (err) {
     console.error("Create tag error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 
@@ -530,7 +530,7 @@ router.delete("/tags/:id", async (req, res) => {
     res.json({ success: true, message: "Tag deleted" });
   } catch (err) {
     console.error("Delete tag error:", err);
-    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.message || "Unknown error" });
+    res.status(500).json({ error: "Internal Server Error", message: (err as any)?.cause?.message || (err as any)?.message || "Unknown error" });
   }
 });
 

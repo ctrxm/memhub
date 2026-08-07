@@ -15,10 +15,10 @@ export function isConfigured(): boolean {
   return !!getSecretKey();
 }
 
-/** Plisio-supported currencies (USDT TRC20 + BNB) */
+/** Plisio-supported currencies */
 export const SUPPORTED_CURRENCIES = [
-  { id: "USDTTRC20", label: "USDT (TRC20)", icon: "₮", network: "TRON" },
-  { id: "BNB",       label: "BNB",          icon: "⬡", network: "BSC" },
+  { id: "USDT", label: "USDT", icon: "₮", network: "" },
+  { id: "BNB",  label: "BNB",  icon: "⬡", network: "BSC" },
 ];
 
 async function plisioGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {
@@ -47,12 +47,12 @@ export interface PlisioInvoice {
   invoice_total_sum: string; // crypto amount
   source_amount?: string;    // fiat amount
   source_currency?: string;  // e.g. "USD"
-  currency?: string;         // e.g. "USDTBSC"
+  currency?: string;
   expire_utc?: string;
 }
 
 export async function createInvoice(params: {
-  currency: "USDTBSC" | "BNB";
+  currency: "USDT" | "BNB";
   amountUsd: number;
   orderId: string;
   orderName: string;

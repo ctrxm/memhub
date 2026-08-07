@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const CURRENCIES = [
-  { id: "USDTTRC20", label: "USDT (TRC20)", icon: "₮", color: "text-green-400" },
+  { id: "USDT", label: "USDT", icon: "₮", color: "text-green-400" },
   { id: "BNB",     label: "BNB",           icon: "⬡", color: "text-yellow-400" },
 ];
 
@@ -49,7 +49,7 @@ export default function Tasks() {
   const [activeTab, setActiveTab] = useState<"tasks" | "mine">("tasks");
 
   // Unlock payment state
-  const [selectedCurrency, setSelectedCurrency] = useState("USDTTRC20");
+  const [selectedCurrency, setSelectedCurrency] = useState("USDT");
   const [paying, setPaying] = useState(false);
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [polling, setPolling] = useState(false);
