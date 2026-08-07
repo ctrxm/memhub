@@ -1,4 +1,4 @@
-import { pgTable, text, serial, boolean, timestamp, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, timestamp, integer, pgEnum, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -20,6 +20,7 @@ export const usersTable = pgTable("users", {
   verificationOtp: text("verification_otp"),
   otpExpiry: timestamp("otp_expiry"),
   tipsEnabled: boolean("tips_enabled").notNull().default(false),
+  walletBalance: numeric("wallet_balance", { precision: 10, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

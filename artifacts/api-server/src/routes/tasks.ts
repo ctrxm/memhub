@@ -24,9 +24,9 @@ async function getUnlockFee(): Promise<number> {
   try {
     const { siteSettingsTable } = await import("@workspace/db");
     const [s] = await db.select({ fee: siteSettingsTable.taskUnlockFee }).from(siteSettingsTable).limit(1);
-    return parseFloat(String(s?.fee ?? "0.5")) || 0.5;
+    return parseFloat(String(s?.fee ?? "3")) || 3;
   } catch {
-    return 0.5;
+    return 3;
   }
 }
 

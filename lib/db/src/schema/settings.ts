@@ -13,7 +13,7 @@ export const siteSettingsTable = pgTable("site_settings", {
   smtpEnabled: boolean("smtp_enabled").notNull().default(false),
   // Task system settings
   taskEnabled: boolean("task_enabled").notNull().default(false),
-  taskUnlockFee: numeric("task_unlock_fee", { precision: 10, scale: 2 }).notNull().default("0.50"),
+  taskUnlockFee: numeric("task_unlock_fee", { precision: 10, scale: 2 }).notNull().default("3.00"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

@@ -322,10 +322,13 @@ router.get("/wallet", authenticate, async (req, res) => {
       .filter(t => ["waiting", "confirming", "confirmed", "sending"].includes(t.status))
       .reduce((s, t) => s + parseFloat(String(t.amountUsd)), 0);
 
+    const taskEarnings = parseFloat(String((req as any).user.walletBalance ?? "0")) || 0;
+
     res.json({
       tipsEnabled: (req as any).user.tipsEnabled,
       totalReceived: totalReceived.toFixed(2),
       pendingReceived: pendingReceived.toFixed(2),
+      taskEarnings: taskEarnings.toFixed(2),
       received: received.map(t => ({ ...t, from: t.fromUserId ? userMap.get(t.fromUserId) : null, post: t.postId ? postMap.get(t.postId) : null })),
       sent: sent.map(t => ({ ...t, to: userMap.get(t.toUserId), post: t.postId ? postMap.get(t.postId) : null })),
     });

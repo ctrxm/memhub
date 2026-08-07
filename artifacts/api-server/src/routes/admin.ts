@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, postsTable, commentsTable, tagsTable, postTagsTable, siteSettingsTable, notificationsTable, tasksTable, taskCompletionsTable, withdrawalsTable } from "@workspace/db";
+import { db, usersTable, postsTable, commentsTable, tagsTable, postTagsTable, siteSettingsTable, notificationsTable, tasksTable, taskCompletionsTable, withdrawalsTable, taskUnlockPaymentsTable } from "@workspace/db";
 import { desc, eq, ilike, sql, or, inArray } from "drizzle-orm";
 import { requireAdmin } from "../lib/auth.js";
 
@@ -443,6 +443,16 @@ router.put("/task-completions/:id/approve", async (req, res) => {
       .set({ status: "approved", rewardPaid: true, updatedAt: new Date() })
       .where(eq(taskCompletionsTable.id, id)).returning();
     if (!completion) { res.status(404).json({ error: "Not Found" }); return; }
+
+    // Get task reward amount and credit to user's wallet balance
+    const [task] = await db.select({ rewardUsd: tasksTable.rewardUsd })
+      .from(tasksTable).where(eq(tasksTable.id, completion.taskId));
+    if (task?.rewardUsd) {
+      await db.update(usersTable)
+        .set({ walletBalance: sql`${usersTable.walletBalance} + ${task.rewardUsd}` })
+        .where(eq(usersTable.id, completion.userId));
+    }
+
     // Increment completions count on task
     await db.update(tasksTable)
       .set({ completionsCount: sql`${tasksTable.completionsCount} + 1`, updatedAt: new Date() })
