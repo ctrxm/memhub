@@ -126,6 +126,8 @@ export default function Tasks() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create invoice");
       setInvoiceData(data);
+      // Auto-redirect to Plisio payment page
+      if (data.invoiceUrl) window.open(data.invoiceUrl, "_blank");
     } catch (err: any) {
       toast({ title: err.message || "Failed to create payment", variant: "destructive" });
     } finally {
@@ -280,7 +282,7 @@ export default function Tasks() {
                   <div className="bg-secondary/50 rounded-xl p-4 mb-5">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground text-sm">Unlock Fee</span>
-                      <span className="font-bold text-xl text-primary">${unlockStatus?.unlockFeeUsd ?? "0.50"} USD</span>
+                      <span className="font-bold text-xl text-primary">${unlockStatus?.unlockFeeUsd ?? "3.00"} USD</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Pay once, access all tasks permanently</p>
                   </div>
@@ -301,7 +303,7 @@ export default function Tasks() {
                         <span className={cn("text-2xl w-8 text-center", c.color)}>{c.icon}</span>
                         <div>
                           <p className="font-semibold text-sm">{c.label}</p>
-                          <p className="text-xs text-muted-foreground">BSC Network (BEP20)</p>
+                          <p className="text-xs text-muted-foreground">{c.id === "USDT" ? "Tron Network (TRC20)" : "BSC Network (BEP20)"}</p>
                         </div>
                         {selectedCurrency === c.id && <CheckCircle2 className="w-4 h-4 text-primary ml-auto" />}
                       </button>
@@ -309,13 +311,13 @@ export default function Tasks() {
                   </div>
 
                   <Button onClick={handleUnlock} isLoading={paying} className="w-full">
-                    Pay ${unlockStatus?.unlockFeeUsd ?? "0.50"} USD → Unlock Tasks
+                    Pay ${unlockStatus?.unlockFeeUsd ?? "3.00"} USD → Unlock Tasks
                   </Button>
                 </div>
 
                 <div className="bg-secondary/30 rounded-xl p-4 text-sm text-muted-foreground space-y-1.5">
                   <p className="font-semibold text-foreground text-sm">How it works</p>
-                  <p>1. Pay the unlock fee in USDT (BEP20) or BNB</p>
+                  <p>1. Pay the unlock fee in USDT (TRC20) or BNB</p>
                   <p>2. After confirmation, access all available tasks</p>
                   <p>3. Complete tasks and submit proof</p>
                   <p>4. Admin reviews and approves your submission</p>
