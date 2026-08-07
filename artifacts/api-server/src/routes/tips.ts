@@ -166,10 +166,10 @@ router.post("/create", authenticate, async (req, res) => {
       toUserId: parseInt(toUserId),
       postId: postId ? parseInt(postId) : null,
       amountUsd: String(amount),
-      cryptoAmount: String(invoice.amount),
-      cryptoCurrency: invoice.currency,
+      cryptoAmount: String(invoice.invoice_total_sum || ""),
+      cryptoCurrency: invoice.currency || cryptoCurrency,
       nowPaymentId: invoice.txn_id,   // reusing column for Plisio txn_id
-      payAddress: invoice.wallet,
+      payAddress: null,
       status: "waiting",
     }).returning();
 
@@ -177,9 +177,8 @@ router.post("/create", authenticate, async (req, res) => {
       tipId: tip.id,
       paymentId: invoice.txn_id,
       invoiceUrl: invoice.invoice_url,
-      payAddress: invoice.wallet,
-      payAmount: invoice.amount,
-      payCurrency: invoice.currency,
+      payAmount: invoice.invoice_total_sum,
+      payCurrency: invoice.currency || cryptoCurrency,
       priceAmount: amount,
       priceCurrency: "USD",
       status: "waiting",

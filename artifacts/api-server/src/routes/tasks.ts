@@ -95,7 +95,7 @@ router.post("/unlock", authenticate, async (req, res) => {
       amountUsd: String(fee),
       currency,
       plisioTxnId: invoice.txn_id,
-      payAddress: invoice.wallet,
+      payAddress: null,
       invoiceUrl: invoice.invoice_url,
       status: "pending",
     }).returning();
@@ -104,8 +104,7 @@ router.post("/unlock", authenticate, async (req, res) => {
       paymentId: payment.id,
       txnId: invoice.txn_id,
       invoiceUrl: invoice.invoice_url,
-      payAddress: invoice.wallet,
-      amount: invoice.amount,
+      amount: invoice.invoice_total_sum,
       currency,
       amountUsd: fee,
     });

@@ -211,29 +211,23 @@ export default function Tasks() {
 
                 <div className="bg-secondary/50 rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Amount</span>
-                    <span className="font-bold text-lg">{invoiceData.amount} {invoiceData.currency}</span>
+                    <span className="text-sm text-muted-foreground">USD Amount</span>
+                    <span className="font-bold text-lg">${invoiceData.amountUsd} USD</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">USD Value</span>
-                    <span className="font-semibold text-sm">${invoiceData.amountUsd} USD</span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground block mb-1.5">Pay to Address</span>
-                    <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
-                      <code className="text-xs flex-1 break-all font-mono">{invoiceData.payAddress}</code>
-                      <button onClick={() => copyToClipboard(invoiceData.payAddress)} className="shrink-0 p-1 rounded hover:bg-secondary transition-colors">
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
+                  {invoiceData.amount && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Crypto Amount</span>
+                      <span className="font-semibold text-sm">{invoiceData.amount} {invoiceData.currency}</span>
                     </div>
-                  </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">Open the invoice page to get the exact payment address and complete your payment.</p>
                 </div>
 
                 <div className="flex gap-3">
                   {invoiceData.invoiceUrl && (
                     <a href={invoiceData.invoiceUrl} target="_blank" rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm">
-                      <ExternalLink className="w-4 h-4" /> Open Invoice
+                      <ExternalLink className="w-4 h-4" /> Open Invoice Page
                     </a>
                   )}
                   <button onClick={() => setInvoiceData(null)}
