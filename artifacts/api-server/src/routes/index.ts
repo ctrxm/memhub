@@ -11,6 +11,7 @@ import adminRouter from "./admin.js";
 import badgesRouter from "./badges.js";
 import communitiesRouter from "./communities.js";
 import tipsRouter from "./tips.js";
+import tasksRouter from "./tasks.js";
 import broadcastsRouter from "./broadcasts.js";
 import adsRouter from "./ads.js";
 import { db, postsTable, siteSettingsTable } from "@workspace/db";
@@ -83,6 +84,7 @@ router.use("/admin", adminRouter);
 router.use("/badges", badgesRouter);
 router.use("/communities", communitiesRouter);
 router.use("/tips", tipsRouter);
+router.use("/tasks", tasksRouter);
 router.use("/broadcasts", broadcastsRouter);
 router.use("/ads", adsRouter);
 

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, boolean, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, integer, timestamp, numeric } from "drizzle-orm/pg-core";
 
 export const siteSettingsTable = pgTable("site_settings", {
   id: serial("id").primaryKey(),
@@ -11,6 +11,9 @@ export const siteSettingsTable = pgTable("site_settings", {
   huggingFaceRepo: text("hugging_face_repo").notNull().default(""),
   maintenanceMode: boolean("maintenance_mode").notNull().default(false),
   smtpEnabled: boolean("smtp_enabled").notNull().default(false),
+  // Task system settings
+  taskEnabled: boolean("task_enabled").notNull().default(false),
+  taskUnlockFee: numeric("task_unlock_fee", { precision: 10, scale: 2 }).notNull().default("0.50"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

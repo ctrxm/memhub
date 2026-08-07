@@ -5,3 +5,4 @@ export * from "./tags.js";
 export * from "./notifications.js";
 export * from "./settings.js";
 export * from "./tips.js";
+export * from "./tasks.js";

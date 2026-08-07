@@ -23,6 +23,7 @@ import NotFound from "@/pages/not-found";
 import Maintenance from "@/pages/Maintenance";
 import TipApply from "@/pages/TipApply";
 import Wallet from "@/pages/Wallet";
+import Tasks from "@/pages/Tasks";
 import { useEffect, useState } from "react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/c/:slug" component={CommunityPage} />
       <Route path="/tip-apply" component={TipApply} />
       <Route path="/wallet" component={Wallet} />
+      <Route path="/tasks" component={Tasks} />
       <Route component={NotFound} />
     </Switch>
   );

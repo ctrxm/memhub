@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, postsTable, commentsTable, tagsTable, postTagsTable, siteSettingsTable, notificationsTable } from "@workspace/db";
-import { desc, eq, ilike, sql, or } from "drizzle-orm";
+import { db, usersTable, postsTable, commentsTable, tagsTable, postTagsTable, siteSettingsTable, notificationsTable, tasksTable, taskCompletionsTable, withdrawalsTable } from "@workspace/db";
+import { desc, eq, ilike, sql, or, inArray } from "drizzle-orm";
 import { requireAdmin } from "../lib/auth.js";
 
 const router = Router();
@@ -278,6 +278,8 @@ router.get("/settings", async (_req, res) => {
       huggingFaceRepo: settings.huggingFaceRepo,
       maintenanceMode: settings.maintenanceMode,
       smtpEnabled: settings.smtpEnabled,
+      taskEnabled: settings.taskEnabled ?? false,
+      taskUnlockFee: settings.taskUnlockFee ?? "0.50",
     });
   } catch (err) {
     console.error("Get settings error:", err);
@@ -288,7 +290,7 @@ router.get("/settings", async (_req, res) => {
 // PUT /admin/settings
 router.put("/settings", async (req, res) => {
   try {
-    const { siteName, siteDescription, allowRegistration, requireApproval, maxUploadSizeMb, allowedFileTypes, huggingFaceRepo, maintenanceMode, smtpEnabled } = req.body;
+    const { siteName, siteDescription, allowRegistration, requireApproval, maxUploadSizeMb, allowedFileTypes, huggingFaceRepo, maintenanceMode, smtpEnabled, taskEnabled, taskUnlockFee } = req.body;
 
     const updates: any = { updatedAt: new Date() };
     if (siteName !== undefined) updates.siteName = siteName;
@@ -300,6 +302,8 @@ router.put("/settings", async (req, res) => {
     if (huggingFaceRepo !== undefined) updates.huggingFaceRepo = huggingFaceRepo;
     if (maintenanceMode !== undefined) updates.maintenanceMode = maintenanceMode;
     if (smtpEnabled !== undefined) updates.smtpEnabled = smtpEnabled;
+    if (taskEnabled !== undefined) updates.taskEnabled = taskEnabled;
+    if (taskUnlockFee !== undefined) updates.taskUnlockFee = String(parseFloat(taskUnlockFee) || 0.5);
 
     let [settings] = await db.select({ id: siteSettingsTable.id }).from(siteSettingsTable).limit(1);
     
@@ -325,9 +329,177 @@ router.put("/settings", async (req, res) => {
       huggingFaceRepo: updated.huggingFaceRepo,
       maintenanceMode: updated.maintenanceMode,
       smtpEnabled: updated.smtpEnabled,
+      taskEnabled: updated.taskEnabled ?? false,
+      taskUnlockFee: updated.taskUnlockFee ?? "0.50",
     });
   } catch (err) {
     console.error("Update settings error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// ─── Task Management ──────────────────────────────────────────────────────────
+
+// GET /admin/tasks
+router.get("/tasks", async (_req, res) => {
+  try {
+    const tasks = await db.select().from(tasksTable).orderBy(desc(tasksTable.createdAt));
+    res.json({ tasks });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// POST /admin/tasks
+router.post("/tasks", async (req, res) => {
+  try {
+    const { title, description, instructions, rewardUsd, maxCompletions } = req.body;
+    if (!title || !description || !instructions || !rewardUsd) {
+      res.status(400).json({ error: "Bad Request", message: "title, description, instructions, rewardUsd required." });
+      return;
+    }
+    const [task] = await db.insert(tasksTable).values({
+      title, description, instructions,
+      rewardUsd: String(parseFloat(rewardUsd)),
+      maxCompletions: parseInt(maxCompletions) || 100,
+      status: "active",
+    }).returning();
+    res.status(201).json({ task });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// PUT /admin/tasks/:id
+router.put("/tasks/:id", async (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id);
+    const { title, description, instructions, rewardUsd, maxCompletions, status } = req.body;
+    const updates: any = { updatedAt: new Date() };
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (instructions !== undefined) updates.instructions = instructions;
+    if (rewardUsd !== undefined) updates.rewardUsd = String(parseFloat(rewardUsd));
+    if (maxCompletions !== undefined) updates.maxCompletions = parseInt(maxCompletions);
+    if (status !== undefined) updates.status = status;
+    const [task] = await db.update(tasksTable).set(updates).where(eq(tasksTable.id, taskId)).returning();
+    if (!task) { res.status(404).json({ error: "Not Found" }); return; }
+    res.json({ task });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// DELETE /admin/tasks/:id
+router.delete("/tasks/:id", async (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id);
+    await db.delete(taskCompletionsTable).where(eq(taskCompletionsTable.taskId, taskId));
+    await db.delete(tasksTable).where(eq(tasksTable.id, taskId));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// GET /admin/task-completions — pending submissions
+router.get("/task-completions", async (req, res) => {
+  try {
+    const { status = "submitted" } = req.query as any;
+    const completions = status === "all"
+      ? await db.select().from(taskCompletionsTable).orderBy(desc(taskCompletionsTable.createdAt)).limit(100)
+      : await db.select().from(taskCompletionsTable).where(eq(taskCompletionsTable.status, status)).orderBy(desc(taskCompletionsTable.createdAt)).limit(100);
+
+    const taskIds = [...new Set(completions.map(c => c.taskId))];
+    const userIds = [...new Set(completions.map(c => c.userId))];
+
+    const [tasks, users] = await Promise.all([
+      taskIds.length ? db.select({ id: tasksTable.id, title: tasksTable.title, rewardUsd: tasksTable.rewardUsd })
+        .from(tasksTable).where(inArray(tasksTable.id, taskIds)) : [],
+      userIds.length ? db.select({ id: usersTable.id, username: usersTable.username, avatar: usersTable.avatar })
+        .from(usersTable).where(inArray(usersTable.id, userIds)) : [],
+    ]);
+
+    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    res.json({
+      completions: completions.map(c => ({
+        ...c,
+        task: taskMap.get(c.taskId) || null,
+        user: userMap.get(c.userId) || null,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// PUT /admin/task-completions/:id/approve
+router.put("/task-completions/:id/approve", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [completion] = await db.update(taskCompletionsTable)
+      .set({ status: "approved", rewardPaid: true, updatedAt: new Date() })
+      .where(eq(taskCompletionsTable.id, id)).returning();
+    if (!completion) { res.status(404).json({ error: "Not Found" }); return; }
+    // Increment completions count on task
+    await db.update(tasksTable)
+      .set({ completionsCount: sql`${tasksTable.completionsCount} + 1`, updatedAt: new Date() })
+      .where(eq(tasksTable.id, completion.taskId));
+    res.json({ completion });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// PUT /admin/task-completions/:id/reject
+router.put("/task-completions/:id/reject", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { reason } = req.body;
+    const [completion] = await db.update(taskCompletionsTable)
+      .set({ status: "rejected", rejectReason: reason || null, updatedAt: new Date() })
+      .where(eq(taskCompletionsTable.id, id)).returning();
+    if (!completion) { res.status(404).json({ error: "Not Found" }); return; }
+    res.json({ completion });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// ─── Withdrawal Management ────────────────────────────────────────────────────
+
+// GET /admin/withdrawals
+router.get("/withdrawals", async (req, res) => {
+  try {
+    const { status } = req.query as any;
+    const list = status && status !== "all"
+      ? await db.select().from(withdrawalsTable).where(eq(withdrawalsTable.status, status)).orderBy(desc(withdrawalsTable.createdAt)).limit(100)
+      : await db.select().from(withdrawalsTable).orderBy(desc(withdrawalsTable.createdAt)).limit(100);
+    const userIds = [...new Set(list.map(w => w.userId))];
+    const users = userIds.length ? await db.select({ id: usersTable.id, username: usersTable.username })
+      .from(usersTable).where(inArray(usersTable.id, userIds)) : [];
+    const userMap = new Map(users.map(u => [u.id, u]));
+    res.json({ withdrawals: list.map(w => ({ ...w, user: userMap.get(w.userId) || null })) });
+  } catch (err) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// PUT /admin/withdrawals/:id — update withdrawal status
+router.put("/withdrawals/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { status, txHash, note } = req.body;
+    const updates: any = { updatedAt: new Date() };
+    if (status) updates.status = status;
+    if (txHash) updates.txHash = txHash;
+    if (note !== undefined) updates.note = note;
+    const [w] = await db.update(withdrawalsTable).set(updates).where(eq(withdrawalsTable.id, id)).returning();
+    if (!w) { res.status(404).json({ error: "Not Found" }); return; }
+    res.json({ withdrawal: w });
+  } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

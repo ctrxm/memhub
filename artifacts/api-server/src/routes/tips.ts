@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, usersTable, tipApplicationsTable, tipsTable, userBadgesTable, badgesTable, followsTable, postsTable, withdrawalsTable } from "@workspace/db";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { authenticate, optionalAuth } from "../lib/auth.js";
-import * as np from "../lib/nowpayments.js";
+import * as plisio from "../lib/plisio.js";
 
 const router = Router();
 
@@ -46,124 +46,74 @@ async function checkEligibility(userId: number): Promise<{
   };
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+// ─── Tip Application Routes ───────────────────────────────────────────────────
 
-// GET /tips/eligibility — check if current user can apply
 router.get("/eligibility", authenticate, async (req, res) => {
   try {
     const userId = (req as any).user.id;
     const result = await checkEligibility(userId);
-
-    // Check if already applied
     const [existing] = await db.select()
       .from(tipApplicationsTable)
       .where(eq(tipApplicationsTable.userId, userId))
       .orderBy(desc(tipApplicationsTable.createdAt))
       .limit(1);
-
-    res.json({
-      ...result,
-      minFollowers: MIN_FOLLOWERS,
-      application: existing || null,
-      tipsEnabled: (req as any).user.tipsEnabled,
-    });
+    res.json({ ...result, minFollowers: MIN_FOLLOWERS, application: existing || null, tipsEnabled: (req as any).user.tipsEnabled });
   } catch (err) {
     console.error("Eligibility error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// POST /tips/apply — submit tip application
 router.post("/apply", authenticate, async (req, res) => {
   try {
     const userId = (req as any).user.id;
-
-    // Already enabled?
     if ((req as any).user.tipsEnabled) {
       res.status(400).json({ error: "Bad Request", message: "Tips are already enabled for your account." });
       return;
     }
-
-    // Existing pending?
     const [pending] = await db.select({ status: tipApplicationsTable.status })
       .from(tipApplicationsTable)
       .where(and(eq(tipApplicationsTable.userId, userId), eq(tipApplicationsTable.status, "pending")))
       .limit(1);
-
     if (pending) {
       res.status(400).json({ error: "Bad Request", message: "You already have a pending application." });
       return;
     }
-
-    // Check eligibility
     const { eligible, followers, hasCreatorBadge, notBanned } = await checkEligibility(userId);
-
     if (!eligible) {
-      res.status(403).json({
-        error: "Not Eligible",
-        message: "You do not meet all requirements to apply for tip feature.",
-        followers,
-        hasCreatorBadge,
-        notBanned,
-        minFollowers: MIN_FOLLOWERS,
-      });
+      res.status(403).json({ error: "Not Eligible", message: "You do not meet all requirements.", followers, hasCreatorBadge, notBanned, minFollowers: MIN_FOLLOWERS });
       return;
     }
-
     const [app] = await db.insert(tipApplicationsTable).values({ userId }).returning();
-
-    res.status(201).json({
-      message: "Application submitted. You'll be notified once reviewed.",
-      application: app,
-    });
+    res.status(201).json({ message: "Application submitted.", application: app });
   } catch (err) {
     console.error("Apply error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// GET /tips/my-application — get own application status
 router.get("/my-application", authenticate, async (req, res) => {
   try {
     const userId = (req as any).user.id;
-    const [app] = await db.select()
-      .from(tipApplicationsTable)
+    const [app] = await db.select().from(tipApplicationsTable)
       .where(eq(tipApplicationsTable.userId, userId))
-      .orderBy(desc(tipApplicationsTable.createdAt))
-      .limit(1);
-
+      .orderBy(desc(tipApplicationsTable.createdAt)).limit(1);
     res.json({ application: app || null, tipsEnabled: (req as any).user.tipsEnabled });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// GET /tips/currencies — get available currencies from NOWPayments
+// GET /tips/currencies — only USDT BEP20 and BNB via Plisio
 router.get("/currencies", async (_req, res) => {
-  try {
-    if (!np.isConfigured()) {
-      res.json({ currencies: ["btc", "eth", "usdt", "usdc", "ltc", "doge"] });
-      return;
-    }
-    const currencies = await np.getAvailableCurrencies();
-    // Return top popular ones first
-    const popular = ["btc", "eth", "usdt", "usdc", "ltc", "bnb", "sol", "doge", "trx"];
-    const sorted = [
-      ...popular.filter(c => currencies.includes(c)),
-      ...currencies.filter(c => !popular.includes(c)).slice(0, 20),
-    ];
-    res.json({ currencies: sorted });
-  } catch (err) {
-    console.error("Currencies error:", err);
-    res.json({ currencies: ["btc", "eth", "usdt", "usdc", "ltc", "doge"] });
-  }
+  res.json({ currencies: plisio.SUPPORTED_CURRENCIES });
 });
 
-// POST /tips/create — create a tip payment
+// POST /tips/create — create a tip payment via Plisio
 router.post("/create", authenticate, async (req, res) => {
   try {
-    if (!np.isConfigured()) {
-      res.status(503).json({ error: "Service Unavailable", message: "Payment gateway not configured. Set NOWPAYMENTS_API_KEY." });
+    if (!plisio.isConfigured()) {
+      res.status(503).json({ error: "Service Unavailable", message: "Payment gateway not configured. Set PLISIO_API_KEY." });
       return;
     }
 
@@ -174,7 +124,10 @@ router.post("/create", authenticate, async (req, res) => {
       res.status(400).json({ error: "Bad Request", message: "toUserId, amountUsd, and cryptoCurrency are required." });
       return;
     }
-
+    if (!["USDTBSC", "BNB"].includes(cryptoCurrency)) {
+      res.status(400).json({ error: "Bad Request", message: "Only USDTBSC and BNB are supported." });
+      return;
+    }
     if (String(fromUserId) === String(toUserId)) {
       res.status(400).json({ error: "Bad Request", message: "You cannot tip yourself." });
       return;
@@ -186,10 +139,8 @@ router.post("/create", authenticate, async (req, res) => {
       return;
     }
 
-    // Check recipient has tips enabled
     const [recipient] = await db.select({ tipsEnabled: usersTable.tipsEnabled, username: usersTable.username })
       .from(usersTable).where(eq(usersTable.id, parseInt(toUserId))).limit(1);
-
     if (!recipient?.tipsEnabled) {
       res.status(403).json({ error: "Forbidden", message: "This user has not enabled the tip feature." });
       return;
@@ -198,42 +149,41 @@ router.post("/create", authenticate, async (req, res) => {
     const sender = (req as any).user;
     const orderId = `tip_${Date.now()}_${fromUserId}_${toUserId}`;
     const description = `Tip from ${sender.username} to ${recipient.username}${postId ? ` for post #${postId}` : ""}`;
+    const baseUrl = process.env.APP_URL || `https://${process.env.REPLIT_DEV_DOMAIN || "localhost"}`;
 
-    const baseUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG || "localhost"}`;
-    const webhookUrl = `${baseUrl}/api/tips/webhook`;
-
-    const payment = await np.createPayment({
-      priceAmount: amount,
-      priceCurrency: "usd",
-      payCurrency: cryptoCurrency.toLowerCase(),
+    const invoice = await plisio.createInvoice({
+      currency: cryptoCurrency as "USDTBSC" | "BNB",
+      amountUsd: amount,
       orderId,
-      orderDescription: description,
-      ipnCallbackUrl: webhookUrl,
+      orderName: description,
+      callbackUrl: `${baseUrl}/api/tips/webhook`,
+      successUrl: `${baseUrl}/wallet`,
+      failUrl: `${baseUrl}/wallet`,
     });
 
-    // Store tip record
     const [tip] = await db.insert(tipsTable).values({
       fromUserId,
       toUserId: parseInt(toUserId),
       postId: postId ? parseInt(postId) : null,
       amountUsd: String(amount),
-      cryptoAmount: String(payment.pay_amount),
-      cryptoCurrency: payment.pay_currency,
-      nowPaymentId: payment.payment_id,
-      payAddress: payment.pay_address,
+      cryptoAmount: String(invoice.amount),
+      cryptoCurrency: invoice.currency,
+      nowPaymentId: invoice.txn_id,   // reusing column for Plisio txn_id
+      payAddress: invoice.wallet,
       status: "waiting",
     }).returning();
 
     res.json({
       tipId: tip.id,
-      paymentId: payment.payment_id,
-      payAddress: payment.pay_address,
-      payAmount: payment.pay_amount,
-      payCurrency: payment.pay_currency,
+      paymentId: invoice.txn_id,
+      invoiceUrl: invoice.invoice_url,
+      payAddress: invoice.wallet,
+      payAmount: invoice.amount,
+      payCurrency: invoice.currency,
       priceAmount: amount,
       priceCurrency: "USD",
-      status: payment.payment_status,
-      expiresAt: payment.expiration_estimate_date,
+      status: "waiting",
+      expiresAt: invoice.expire_utc,
     });
   } catch (err: any) {
     console.error("Create tip error:", err);
@@ -241,55 +191,63 @@ router.post("/create", authenticate, async (req, res) => {
   }
 });
 
-// GET /tips/payment/:paymentId — poll payment status
-router.get("/payment/:paymentId", authenticate, async (req, res) => {
+// GET /tips/payment/:txnId — poll tip payment status
+router.get("/payment/:txnId", authenticate, async (req, res) => {
   try {
-    const { paymentId } = req.params;
+    const { txnId } = req.params;
 
-    // Update from NOWPayments if configured
-    if (np.isConfigured()) {
+    if (plisio.isConfigured()) {
       try {
-        const npPayment = await np.getPayment(paymentId);
-        await db.update(tipsTable)
-          .set({ status: npPayment.payment_status as any, updatedAt: new Date() })
-          .where(eq(tipsTable.nowPaymentId, paymentId));
-      } catch (_) {}
+        const txn = await plisio.getTransaction(txnId);
+        const mapped = plisio.mapStatus(txn.status);
+        if (mapped !== "waiting") {
+          await db.update(tipsTable)
+            .set({ status: mapped as any, updatedAt: new Date() })
+            .where(eq(tipsTable.nowPaymentId, txnId));
+        }
+      } catch { /* ignore */ }
     }
 
     const [tip] = await db.select().from(tipsTable)
-      .where(eq(tipsTable.nowPaymentId, paymentId)).limit(1);
-
-    if (!tip) {
-      res.status(404).json({ error: "Not Found", message: "Payment not found." });
-      return;
-    }
+      .where(eq(tipsTable.nowPaymentId, txnId)).limit(1);
+    if (!tip) { res.status(404).json({ error: "Not Found" }); return; }
 
     res.json({ status: tip.status, tip });
   } catch (err) {
-    console.error("Payment status error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// POST /tips/webhook — NOWPayments IPN callback
+// POST /tips/webhook — Plisio IPN callback for tips
 router.post("/webhook", async (req, res) => {
   try {
-    const { payment_id, payment_status } = req.body;
+    const data = req.body as Record<string, string>;
 
-    if (payment_id && payment_status) {
-      await db.update(tipsTable)
-        .set({ status: payment_status as any, updatedAt: new Date() })
-        .where(eq(tipsTable.nowPaymentId, String(payment_id)));
+    if (!plisio.verifyWebhook(data)) {
+      console.warn("[Tips webhook] Invalid verify_hash");
+      res.status(400).json({ error: "Invalid signature" });
+      return;
     }
 
-    res.json({ ok: true });
+    const { txn_id, order_number, status } = data;
+    if (!txn_id || !order_number?.startsWith("tip_")) {
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    const mapped = plisio.mapStatus(status);
+    await db.update(tipsTable)
+      .set({ status: mapped as any, updatedAt: new Date() })
+      .where(eq(tipsTable.nowPaymentId, txn_id));
+
+    res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("Webhook error:", err);
+    console.error("[Tips webhook] Error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// GET /tips/wallet — my wallet (tips I received)
+// GET /tips/wallet
 router.get("/wallet", authenticate, async (req, res) => {
   try {
     const userId = (req as any).user.id;
@@ -303,11 +261,7 @@ router.get("/wallet", authenticate, async (req, res) => {
       postId: tipsTable.postId,
       fromUserId: tipsTable.fromUserId,
       createdAt: tipsTable.createdAt,
-    })
-      .from(tipsTable)
-      .where(eq(tipsTable.toUserId, userId))
-      .orderBy(desc(tipsTable.createdAt))
-      .limit(50);
+    }).from(tipsTable).where(eq(tipsTable.toUserId, userId)).orderBy(desc(tipsTable.createdAt)).limit(50);
 
     const sent = await db.select({
       id: tipsTable.id,
@@ -317,19 +271,12 @@ router.get("/wallet", authenticate, async (req, res) => {
       postId: tipsTable.postId,
       toUserId: tipsTable.toUserId,
       createdAt: tipsTable.createdAt,
-    })
-      .from(tipsTable)
-      .where(and(eq(tipsTable.fromUserId, userId)))
-      .orderBy(desc(tipsTable.createdAt))
-      .limit(50);
+    }).from(tipsTable).where(eq(tipsTable.fromUserId, userId)).orderBy(desc(tipsTable.createdAt)).limit(50);
 
-    // Enrich with usernames
-    const allUserIds = [
-      ...new Set([
-        ...received.map(t => t.fromUserId).filter(Boolean),
-        ...sent.map(t => t.toUserId),
-      ]),
-    ] as number[];
+    const allUserIds = [...new Set([
+      ...received.map(t => t.fromUserId).filter(Boolean),
+      ...sent.map(t => t.toUserId),
+    ])] as number[];
 
     const users = allUserIds.length
       ? await db.select({ id: usersTable.id, username: usersTable.username, avatar: usersTable.avatar })
@@ -337,7 +284,6 @@ router.get("/wallet", authenticate, async (req, res) => {
       : [];
     const userMap = new Map(users.map(u => [u.id, u]));
 
-    // Enrich post titles
     const allPostIds = [...new Set([
       ...received.map(t => t.postId),
       ...sent.map(t => t.postId),
@@ -351,212 +297,109 @@ router.get("/wallet", authenticate, async (req, res) => {
 
     const totalReceived = received
       .filter(t => t.status === "finished")
-      .reduce((sum, t) => sum + parseFloat(String(t.amountUsd)), 0);
+      .reduce((s, t) => s + parseFloat(String(t.amountUsd)), 0);
 
     const pendingReceived = received
       .filter(t => ["waiting", "confirming", "confirmed", "sending"].includes(t.status))
-      .reduce((sum, t) => sum + parseFloat(String(t.amountUsd)), 0);
+      .reduce((s, t) => s + parseFloat(String(t.amountUsd)), 0);
 
     res.json({
       tipsEnabled: (req as any).user.tipsEnabled,
       totalReceived: totalReceived.toFixed(2),
       pendingReceived: pendingReceived.toFixed(2),
-      received: received.map(t => ({
-        ...t,
-        amountUsd: parseFloat(String(t.amountUsd)),
-        from: t.fromUserId ? userMap.get(t.fromUserId) || null : null,
-        post: t.postId ? postMap.get(t.postId) || null : null,
-      })),
-      sent: sent.map(t => ({
-        ...t,
-        amountUsd: parseFloat(String(t.amountUsd)),
-        to: userMap.get(t.toUserId) || null,
-        post: t.postId ? postMap.get(t.postId) || null : null,
-      })),
+      received: received.map(t => ({ ...t, from: t.fromUserId ? userMap.get(t.fromUserId) : null, post: t.postId ? postMap.get(t.postId) : null })),
+      sent: sent.map(t => ({ ...t, to: userMap.get(t.toUserId), post: t.postId ? postMap.get(t.postId) : null })),
     });
   } catch (err) {
-    console.error("Wallet error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// GET /tips/post/:postId/author — check if post author has tips enabled
-router.get("/post/:postId/author", optionalAuth, async (req, res) => {
-  try {
-    const [post] = await db.select({ authorId: postsTable.authorId })
-      .from(postsTable).where(eq(postsTable.id, parseInt(req.params.postId))).limit(1);
-    if (!post) { res.json({ tipsEnabled: false }); return; }
-
-    const [author] = await db.select({ tipsEnabled: usersTable.tipsEnabled, username: usersTable.username })
-      .from(usersTable).where(eq(usersTable.id, post.authorId)).limit(1);
-
-    res.json({ tipsEnabled: author?.tipsEnabled ?? false, authorId: post.authorId, username: author?.username });
-  } catch (err) {
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// ─── Withdraw Routes ──────────────────────────────────────────────────────────
-
-// POST /tips/withdraw — request a withdrawal
-router.post("/withdraw", authenticate, async (req, res) => {
+// POST /tips/withdraw/request
+router.post("/withdraw/request", authenticate, async (req, res) => {
   try {
     const userId = (req as any).user.id;
-    if (!(req as any).user.tipsEnabled) {
-      res.status(403).json({ error: "Forbidden", message: "Tips not enabled for your account." });
-      return;
-    }
-
     const { address, currency, amountUsd } = req.body;
     if (!address || !currency || !amountUsd) {
-      res.status(400).json({ error: "Bad Request", message: "address, currency, and amountUsd are required." });
+      res.status(400).json({ error: "Bad Request", message: "address, currency, amountUsd required." });
       return;
     }
-
-    const amount = parseFloat(amountUsd);
-    if (isNaN(amount) || amount <= 0) {
-      res.status(400).json({ error: "Bad Request", message: "Invalid amount." });
+    if (!["USDTBSC", "BNB"].includes(currency)) {
+      res.status(400).json({ error: "Bad Request", message: "Only USDTBSC and BNB withdrawals are supported." });
       return;
     }
-
-    // Check if they have sufficient finished tips balance
-    const received = await db.select({ amt: tipsTable.amountUsd })
-      .from(tipsTable)
-      .where(and(eq(tipsTable.toUserId, userId), eq(tipsTable.status, "finished")));
-    const totalReceived = received.reduce((s, r) => s + parseFloat(r.amt), 0);
-
-    const pendingWithdrawals = await db.select({ amt: withdrawalsTable.amountUsd })
-      .from(withdrawalsTable)
-      .where(and(eq(withdrawalsTable.userId, userId), inArray(withdrawalsTable.status, ["pending", "processing"])));
-    const totalPendingWithdraw = pendingWithdrawals.reduce((s, w) => s + parseFloat(w.amt), 0);
-
-    const previousWithdrawals = await db.select({ amt: withdrawalsTable.amountUsd })
-      .from(withdrawalsTable)
-      .where(and(eq(withdrawalsTable.userId, userId), eq(withdrawalsTable.status, "completed")));
-    const totalWithdrawn = previousWithdrawals.reduce((s, w) => s + parseFloat(w.amt), 0);
-
-    const available = totalReceived - totalWithdrawn - totalPendingWithdraw;
-    if (amount > available) {
-      res.status(400).json({ error: "Insufficient Balance", message: `Available balance is $${available.toFixed(2)} USD.` });
-      return;
-    }
-
-    const [withdrawal] = await db.insert(withdrawalsTable).values({
+    const [w] = await db.insert(withdrawalsTable).values({
       userId,
       address,
-      currency: currency.toLowerCase(),
-      amountUsd: amount.toFixed(2),
+      currency,
+      amountUsd: String(parseFloat(amountUsd)),
+      status: "pending",
     }).returning();
-
-    res.status(201).json({ message: "Withdrawal request submitted. Admin will process it shortly.", withdrawal });
+    res.status(201).json({ message: "Withdrawal request submitted.", withdrawal: w });
   } catch (err) {
-    console.error("Withdraw error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// GET /tips/withdraw/history — get own withdrawal history
+// GET /tips/withdraw/history
 router.get("/withdraw/history", authenticate, async (req, res) => {
   try {
     const userId = (req as any).user.id;
-    const history = await db.select()
-      .from(withdrawalsTable)
+    const withdrawalsList = await db.select().from(withdrawalsTable)
       .where(eq(withdrawalsTable.userId, userId))
-      .orderBy(desc(withdrawalsTable.createdAt))
-      .limit(50);
-    res.json({ withdrawals: history });
+      .orderBy(desc(withdrawalsTable.createdAt)).limit(50);
+    res.json({ withdrawals: withdrawalsList });
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// ─── Admin Routes ─────────────────────────────────────────────────────────────
+// ─── Admin routes ─────────────────────────────────────────────────────────────
 
-// GET /tips/admin/applications — list all applications (admin only)
 router.get("/admin/applications", authenticate, async (req, res) => {
   try {
-    if ((req as any).user.role !== "admin") {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-
-    const apps = await db.select()
-      .from(tipApplicationsTable)
-      .orderBy(desc(tipApplicationsTable.createdAt))
-      .limit(100);
-
-    const userIds = [...new Set(apps.map(a => a.userId))];
-    const users = userIds.length
-      ? await db.select({ id: usersTable.id, username: usersTable.username, avatar: usersTable.avatar })
-          .from(usersTable).where(inArray(usersTable.id, userIds))
-      : [];
+    if ((req as any).user.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
+    const apps = await db.select().from(tipApplicationsTable).orderBy(desc(tipApplicationsTable.createdAt));
+    const userIds = apps.map(a => a.userId);
+    const users = userIds.length ? await db.select({ id: usersTable.id, username: usersTable.username, avatar: usersTable.avatar })
+      .from(usersTable).where(inArray(usersTable.id, userIds)) : [];
+    const followCounts = await Promise.all(userIds.map(uid => getFollowersCount(uid).then(count => ({ uid, count }))));
+    const followMap = new Map(followCounts.map(f => [f.uid, f.count]));
     const userMap = new Map(users.map(u => [u.id, u]));
-
-    // Enrich with followers + badge check
-    const enriched = await Promise.all(apps.map(async app => {
-      const followers = await getFollowersCount(app.userId);
-      const hasCreatorBadge = await hasVerifiedBadge(app.userId);
-      return {
-        ...app,
-        user: userMap.get(app.userId) || null,
-        followers,
-        hasCreatorBadge,
-      };
-    }));
-
-    res.json({ applications: enriched });
+    res.json({ applications: apps.map(a => ({ ...a, user: userMap.get(a.userId) || null, followers: followMap.get(a.userId) || 0, hasCreatorBadge: false })) });
   } catch (err) {
-    console.error("Admin applications error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// PUT /tips/admin/applications/:id/approve
 router.put("/admin/applications/:id/approve", authenticate, async (req, res) => {
   try {
     if ((req as any).user.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
-
     const appId = parseInt(req.params.id);
     const adminId = (req as any).user.id;
-
     const [app] = await db.update(tipApplicationsTable)
       .set({ status: "approved", reviewedBy: adminId, reviewedAt: new Date() })
-      .where(eq(tipApplicationsTable.id, appId))
-      .returning();
-
+      .where(eq(tipApplicationsTable.id, appId)).returning();
     if (!app) { res.status(404).json({ error: "Not Found" }); return; }
-
-    // Enable tips for user
-    await db.update(usersTable)
-      .set({ tipsEnabled: true })
-      .where(eq(usersTable.id, app.userId));
-
-    res.json({ message: "Application approved. Tip feature enabled for user.", application: app });
+    await db.update(usersTable).set({ tipsEnabled: true }).where(eq(usersTable.id, app.userId));
+    res.json({ message: "Approved.", application: app });
   } catch (err) {
-    console.error("Approve error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// PUT /tips/admin/applications/:id/reject
 router.put("/admin/applications/:id/reject", authenticate, async (req, res) => {
   try {
     if ((req as any).user.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return; }
-
     const appId = parseInt(req.params.id);
     const adminId = (req as any).user.id;
     const { reason } = req.body;
-
     const [app] = await db.update(tipApplicationsTable)
       .set({ status: "rejected", reviewedBy: adminId, reviewedAt: new Date(), rejectionReason: reason || null })
-      .where(eq(tipApplicationsTable.id, appId))
-      .returning();
-
+      .where(eq(tipApplicationsTable.id, appId)).returning();
     if (!app) { res.status(404).json({ error: "Not Found" }); return; }
-
-    res.json({ message: "Application rejected.", application: app });
+    res.json({ message: "Rejected.", application: app });
   } catch (err) {
-    console.error("Reject error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

@@ -4,13 +4,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useGetAdminStats, useGetAdminPosts, useUpdatePostStatus, useGetAdminSettings, useUpdateAdminSettings } from "@workspace/api-client-react";
 import { Button, Input, Badge, Textarea } from "@/components/ui/shared";
-import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck, Hash, Zap, Megaphone, Tv2, ToggleLeft, ToggleRight, ExternalLink } from "lucide-react";
+import { ShieldAlert, Users, Image as ImageIcon, MessageSquare, Activity, Settings, Check, X, Award, Plus, Trash2, UserCheck, Hash, Zap, Megaphone, Tv2, ToggleLeft, ToggleRight, ExternalLink, Briefcase, CreditCard, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatNumber } from "@/lib/utils";
 import { UserBadge } from "@/components/ui/UserBadge";
 import { cn } from "@/lib/utils";
 
-type AdminTab = "dashboard" | "posts" | "users" | "badges" | "tags" | "settings" | "tips" | "broadcasts" | "ads";
+type AdminTab = "dashboard" | "posts" | "users" | "badges" | "tags" | "settings" | "tips" | "broadcasts" | "ads" | "tasks" | "payments";
 
 const ADMIN_TABS: { id: AdminTab; icon: React.ReactNode; label: string }[] = [
   { id: "dashboard",   icon: <Activity className="w-4 h-4" />,    label: "Dashboard" },
@@ -20,6 +20,8 @@ const ADMIN_TABS: { id: AdminTab; icon: React.ReactNode; label: string }[] = [
   { id: "tags",        icon: <Hash className="w-4 h-4" />,        label: "Tags" },
   { id: "broadcasts",  icon: <Megaphone className="w-4 h-4" />,   label: "Broadcasts" },
   { id: "ads",         icon: <Tv2 className="w-4 h-4" />,         label: "Ads" },
+  { id: "tasks",       icon: <Briefcase className="w-4 h-4" />,   label: "Tasks" },
+  { id: "payments",    icon: <CreditCard className="w-4 h-4" />,  label: "Payments" },
   { id: "settings",    icon: <Settings className="w-4 h-4" />,    label: "Settings" },
   { id: "tips",        icon: <Zap className="w-4 h-4" />,         label: "Tips" },
 ];
@@ -97,6 +99,8 @@ export default function Admin() {
           {tab === "ads"        && <AdminAds />}
           {tab === "settings"   && <AdminSettings />}
           {tab === "tips"       && <AdminTipApplications />}
+          {tab === "tasks"      && <AdminTasks />}
+          {tab === "payments"   && <AdminPayments />}
         </div>
       </div>
     </Layout>
@@ -545,6 +549,7 @@ function AdminSettings() {
 
   const [form, setForm] = useState({
     siteName: "", siteDescription: "", allowRegistration: true, requireApproval: false, huggingFaceRepo: "", maintenanceMode: false, smtpEnabled: false,
+    taskEnabled: false, taskUnlockFee: "0.50",
   });
 
   useEffect(() => {
@@ -556,6 +561,8 @@ function AdminSettings() {
       huggingFaceRepo: settings.huggingFaceRepo,
       maintenanceMode: settings.maintenanceMode,
       smtpEnabled: (settings as any).smtpEnabled ?? false,
+      taskEnabled: (settings as any).taskEnabled ?? false,
+      taskUnlockFee: String((settings as any).taskUnlockFee ?? "0.50"),
     });
   }, [settings]);
 
@@ -614,9 +621,33 @@ function AdminSettings() {
           <input type="checkbox" className="w-5 h-5 accent-primary" checked={form.smtpEnabled} onChange={e => setForm({...form, smtpEnabled: e.target.checked})} />
         </div>
 
+        <div className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${form.taskEnabled ? "bg-primary/10 border-primary/40" : "bg-background border-border/50"}`}>
+          <div>
+            <p className="font-bold flex items-center gap-2">
+              <Briefcase className="w-4 h-4" /> Task System
+              {form.taskEnabled ? <span className="text-xs text-primary font-semibold uppercase tracking-wide">On</span> : <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Off</span>}
+            </p>
+            <p className="text-sm text-muted-foreground">Allow users to earn money by completing tasks.</p>
+          </div>
+          <input type="checkbox" className="w-5 h-5 accent-primary" checked={form.taskEnabled} onChange={e => setForm({...form, taskEnabled: e.target.checked})} />
+        </div>
+
+        {form.taskEnabled && (
+          <div>
+            <label className="text-sm font-bold mb-1 block">Task Unlock Fee (USD)</label>
+            <input
+              type="number" step="0.01" min="0.01"
+              value={form.taskUnlockFee}
+              onChange={e => setForm({...form, taskUnlockFee: e.target.value})}
+              className="w-full bg-secondary border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground mt-1">One-time fee users pay to access all tasks (in USD, paid via Plisio).</p>
+          </div>
+        )}
+
         <Button 
           className="w-full mt-4" 
-          onClick={() => updateMutation.mutate({ data: { ...settings!, ...form, maxUploadSizeMb: settings?.maxUploadSizeMb ?? 10, allowedFileTypes: settings?.allowedFileTypes ?? [], smtpEnabled: form.smtpEnabled } as any})}
+          onClick={() => updateMutation.mutate({ data: { ...settings!, ...form, maxUploadSizeMb: settings?.maxUploadSizeMb ?? 10, allowedFileTypes: settings?.allowedFileTypes ?? [], smtpEnabled: form.smtpEnabled, taskEnabled: form.taskEnabled, taskUnlockFee: form.taskUnlockFee } as any})}
           isLoading={updateMutation.isPending}
         >
           Save Changes
@@ -1057,6 +1088,342 @@ function AdminAds() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Admin Tasks ──────────────────────────────────────────────────────────────
+
+function AdminTasks() {
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const { toast } = useToast();
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [completions, setCompletions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"tasks" | "submissions">("tasks");
+  const [form, setForm] = useState({ title: "", description: "", instructions: "", rewardUsd: "", maxCompletions: "100" });
+  const [saving, setSaving] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [working, setWorking] = useState<number | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ id: number } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [submissionFilter, setSubmissionFilter] = useState("submitted");
+
+  const fetchAll = async () => {
+    try {
+      const [tRes, cRes] = await Promise.all([
+        fetch(`${BASE}/api/admin/tasks`),
+        fetch(`${BASE}/api/admin/task-completions?status=${submissionFilter}`),
+      ]);
+      const [tData, cData] = await Promise.all([tRes.json(), cRes.json()]);
+      setTasks(tData.tasks || []);
+      setCompletions(cData.completions || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAll(); }, [submissionFilter]);
+
+  const createTask = async () => {
+    if (!form.title || !form.description || !form.instructions || !form.rewardUsd) {
+      toast({ title: "All fields are required", variant: "destructive" }); return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/admin/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) { toast({ title: "Task created!" }); setShowCreate(false); setForm({ title: "", description: "", instructions: "", rewardUsd: "", maxCompletions: "100" }); fetchAll(); }
+      else { const d = await res.json(); toast({ title: d.message || "Error", variant: "destructive" }); }
+    } catch { toast({ title: "Error", variant: "destructive" }); }
+    setSaving(false);
+  };
+
+  const toggleStatus = async (task: any) => {
+    const newStatus = task.status === "active" ? "paused" : "active";
+    await fetch(`${BASE}/api/admin/tasks/${task.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) });
+    fetchAll();
+  };
+
+  const deleteTask = async (id: number) => {
+    if (!confirm("Delete this task? All submissions will also be deleted.")) return;
+    await fetch(`${BASE}/api/admin/tasks/${id}`, { method: "DELETE" });
+    toast({ title: "Task deleted" }); fetchAll();
+  };
+
+  const approveCompletion = async (id: number) => {
+    setWorking(id);
+    const res = await fetch(`${BASE}/api/admin/task-completions/${id}/approve`, { method: "PUT" });
+    if (res.ok) toast({ title: "Approved! Reward credited." }); else toast({ title: "Error", variant: "destructive" });
+    setWorking(null); fetchAll();
+  };
+
+  const rejectCompletion = async () => {
+    if (!rejectModal) return;
+    setWorking(rejectModal.id);
+    await fetch(`${BASE}/api/admin/task-completions/${rejectModal.id}/reject`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: rejectReason }),
+    });
+    toast({ title: "Rejected" }); setRejectModal(null); setWorking(null); fetchAll();
+  };
+
+  const COMPLETION_STATUS: Record<string, string> = {
+    submitted: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    approved: "bg-green-500/15 text-green-400 border-green-500/30",
+    rejected: "bg-destructive/15 text-destructive border-destructive/30",
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-xl font-bold flex items-center gap-2"><Briefcase className="w-5 h-5 text-primary" /> Task Management</h2>
+        <Button size="sm" onClick={() => setShowCreate(v => !v)}><Plus className="w-4 h-4 mr-1" /> New Task</Button>
+      </div>
+
+      {showCreate && (
+        <div className="mb-5 p-4 rounded-xl border border-border bg-secondary/20 space-y-3">
+          <h3 className="font-bold">Create Task</h3>
+          <input className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Title *" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+          <textarea className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary" rows={2} placeholder="Description (shown to users) *" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          <textarea className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary" rows={3} placeholder="Instructions (step-by-step, what proof to submit) *" value={form.instructions} onChange={e => setForm(f => ({ ...f, instructions: e.target.value }))} />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Reward (USD) *</label>
+              <input type="number" step="0.01" min="0.01" className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="e.g. 2.00" value={form.rewardUsd} onChange={e => setForm(f => ({ ...f, rewardUsd: e.target.value }))} />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Max Completions</label>
+              <input type="number" min="1" className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary" value={form.maxCompletions} onChange={e => setForm(f => ({ ...f, maxCompletions: e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={createTask} isLoading={saving} className="flex-1">Create Task</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1">Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-1 bg-secondary rounded-xl p-1 mb-4">
+        {(["tasks", "submissions"] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} className={cn("flex-1 py-2 rounded-lg text-sm font-bold transition-all capitalize", tab === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+            {t === "submissions" ? "Submissions" : "Task List"}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+      ) : tab === "tasks" ? (
+        tasks.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground"><Briefcase className="w-10 h-10 mx-auto mb-3 opacity-30" /><p>No tasks yet</p></div>
+        ) : (
+          <div className="space-y-3">
+            {tasks.map(task => (
+              <div key={task.id} className={cn("p-4 rounded-xl border border-border/50 bg-background", task.status === "paused" && "opacity-60")}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-sm">{task.title}</p>
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full border font-semibold", task.status === "active" ? "bg-green-500/15 text-green-400 border-green-500/30" : "bg-yellow-500/15 text-yellow-400 border-yellow-500/30")}>{task.status}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{task.description}</p>
+                    <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                      <span className="text-primary font-bold">${parseFloat(task.rewardUsd).toFixed(2)} reward</span>
+                      <span>{task.completionsCount}/{task.maxCompletions} done</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => toggleStatus(task)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors" title={task.status === "active" ? "Pause" : "Activate"}>
+                      {task.status === "active" ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5 text-muted-foreground" />}
+                    </button>
+                    <button onClick={() => deleteTask(task.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        /* Submissions tab */
+        <div className="space-y-4">
+          <div className="flex gap-1 bg-secondary/50 rounded-xl p-1">
+            {(["submitted", "approved", "rejected", "all"] as const).map(f => (
+              <button key={f} onClick={() => setSubmissionFilter(f)} className={cn("flex-1 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors", submissionFilter === f ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                {f}
+              </button>
+            ))}
+          </div>
+          {completions.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground"><Check className="w-10 h-10 mx-auto mb-3 opacity-30" /><p>No submissions</p></div>
+          ) : (
+            <div className="space-y-3">
+              {completions.map(c => (
+                <div key={c.id} className="p-4 rounded-xl border border-border/50 bg-background space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-sm">{c.task?.title || `Task #${c.taskId}`}</p>
+                      <p className="text-xs text-muted-foreground">by @{c.user?.username || `User #${c.userId}`}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-primary text-sm">${parseFloat(c.task?.rewardUsd || "0").toFixed(2)}</p>
+                      <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-semibold border", COMPLETION_STATUS[c.status] || "")}>{c.status}</span>
+                    </div>
+                  </div>
+                  {c.proofText && <div className="bg-secondary/50 rounded-lg p-3 text-xs"><p className="font-semibold mb-1">Proof</p><p className="whitespace-pre-wrap">{c.proofText}</p></div>}
+                  {c.proofUrl && <a href={c.proofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><ExternalLink className="w-3 h-3" /> View Proof URL</a>}
+                  {c.status === "submitted" && (
+                    <div className="flex gap-2">
+                      <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => approveCompletion(c.id)} isLoading={working === c.id}><Check className="w-4 h-4 mr-1" /> Approve</Button>
+                      <Button size="sm" variant="destructive" className="flex-1" onClick={() => { setRejectModal({ id: c.id }); setRejectReason(""); }}>
+                        <X className="w-4 h-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  )}
+                  {c.rejectReason && <p className="text-xs text-destructive">Rejection reason: {c.rejectReason}</p>}
+                  <p className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 space-y-4">
+            <h3 className="font-bold">Reject Submission</h3>
+            <textarea className="w-full bg-secondary border border-border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary" rows={3} placeholder="Rejection reason (optional)" value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setRejectModal(null)} className="flex-1">Cancel</Button>
+              <Button variant="destructive" onClick={rejectCompletion} isLoading={working !== null} className="flex-1">Reject</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Admin Payments ───────────────────────────────────────────────────────────
+
+function AdminPayments() {
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const { toast } = useToast();
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("pending");
+  const [working, setWorking] = useState<number | null>(null);
+  const [txModal, setTxModal] = useState<{ id: number } | null>(null);
+  const [txHash, setTxHash] = useState("");
+
+  const fetchWithdrawals = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/admin/withdrawals?status=${filter}`);
+      const data = await res.json();
+      setWithdrawals(data.withdrawals || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { setLoading(true); fetchWithdrawals(); }, [filter]);
+
+  const updateWithdrawal = async (id: number, status: string, hash?: string) => {
+    setWorking(id);
+    await fetch(`${BASE}/api/admin/withdrawals/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, txHash: hash }),
+    });
+    toast({ title: `Withdrawal ${status}` });
+    setWorking(null); setTxModal(null); fetchWithdrawals();
+  };
+
+  const STATUS_STYLE: Record<string, string> = {
+    pending: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+    processing: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    completed: "bg-green-500/15 text-green-400 border-green-500/30",
+    rejected: "bg-destructive/15 text-destructive border-destructive/30",
+  };
+
+  return (
+    <div>
+      <div className="mb-5">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-2"><CreditCard className="w-5 h-5 text-primary" /> Payment & Withdrawals</h2>
+        <div className="bg-secondary/30 rounded-xl p-4 text-sm space-y-2">
+          <p className="font-semibold">Payment Configuration</p>
+          <p className="text-muted-foreground text-xs">Plisio API key is set via Replit Secrets (<code className="bg-secondary px-1 rounded">PLISIO_API_KEY</code>). Webhook secret: <code className="bg-secondary px-1 rounded">PLISIO_SECRET_KEY</code>.</p>
+          <p className="text-muted-foreground text-xs">Webhook URL: <code className="bg-secondary px-1 rounded text-xs">/api/tasks/webhook</code> and <code className="bg-secondary px-1 rounded text-xs">/api/tips/webhook</code></p>
+          <p className="text-muted-foreground text-xs">Supported currencies: USDT (BEP20) and BNB only.</p>
+        </div>
+      </div>
+
+      <h3 className="font-bold mb-3">Withdrawal Requests</h3>
+
+      <div className="flex gap-1 bg-secondary rounded-xl p-1 mb-4">
+        {(["pending", "processing", "completed", "rejected", "all"] as const).map(f => (
+          <button key={f} onClick={() => setFilter(f)} className={cn("flex-1 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors", filter === f ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+      ) : withdrawals.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground"><CreditCard className="w-10 h-10 mx-auto mb-3 opacity-30" /><p>No {filter === "all" ? "" : filter} withdrawals</p></div>
+      ) : (
+        <div className="space-y-3">
+          {withdrawals.map(w => (
+            <div key={w.id} className="p-4 rounded-xl border border-border/50 bg-background space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-sm">@{w.user?.username || `User #${w.userId}`}</p>
+                    <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold border", STATUS_STYLE[w.status] || "")}>{w.status}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Amount: <span className="font-bold text-foreground">${parseFloat(w.amountUsd).toFixed(2)} USD</span> · {w.currency}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <code className="text-xs text-muted-foreground truncate">{w.address}</code>
+                    <button onClick={() => navigator.clipboard.writeText(w.address).then(() => toast({ title: "Copied!" }))} className="p-0.5 rounded hover:bg-secondary transition-colors shrink-0">
+                      <Eye className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                  </div>
+                  {w.txHash && <p className="text-xs text-green-400 mt-1 truncate">TX: {w.txHash}</p>}
+                  {w.note && <p className="text-xs text-muted-foreground mt-1">{w.note}</p>}
+                </div>
+              </div>
+              {w.status === "pending" && (
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={() => updateWithdrawal(w.id, "processing")} isLoading={working === w.id}>Processing</Button>
+                  <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => { setTxModal({ id: w.id }); setTxHash(""); }}>Mark Paid</Button>
+                  <Button size="sm" variant="destructive" className="flex-1" onClick={() => updateWithdrawal(w.id, "rejected")} isLoading={working === w.id}>Reject</Button>
+                </div>
+              )}
+              {w.status === "processing" && (
+                <Button size="sm" className="w-full bg-green-600 hover:bg-green-700" onClick={() => { setTxModal({ id: w.id }); setTxHash(""); }}>Mark Completed</Button>
+              )}
+              <p className="text-xs text-muted-foreground">{new Date(w.createdAt).toLocaleDateString()}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {txModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 space-y-4">
+            <h3 className="font-bold">Enter Transaction Hash</h3>
+            <input className="w-full bg-secondary border border-border rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0x..." value={txHash} onChange={e => setTxHash(e.target.value)} />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setTxModal(null)} className="flex-1">Cancel</Button>
+              <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => updateWithdrawal(txModal.id, "completed", txHash)} isLoading={working !== null}>Confirm Paid</Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
