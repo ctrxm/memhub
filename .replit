@@ -67,6 +67,7 @@ timeoutMs = 20000
 [userenv.shared]
 HUGGINGFACE_REPO = "kalcer/kalcer"
 SUPABASE_DATABASE_URL = "postgresql://postgres.mzrwchhkxxzkjinrnosw:HendraWahyu@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+APP_URL = "https://ctrxl.id"
 
 [nix]
 channel = "stable-25_05"
